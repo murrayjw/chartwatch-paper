@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1608064163081.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3766897291",
+    "id" : "19D655DE",
+    "lastKnownWriteTime" : 1608064237,
+    "last_content_update" : 1608064237424,
+    "path" : "H:/chartwatch-paper/calculate-news-hews-performance.R",
+    "project_path" : "calculate-news-hews-performance.R",
+    "properties" : {
+        "cursorPosition" : "0,101",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

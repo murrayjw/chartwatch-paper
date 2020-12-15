@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1608066538399.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1127497362",
+    "id" : "149B5AE0",
+    "lastKnownWriteTime" : 1608066635,
+    "last_content_update" : 1608066635417,
+    "path" : "H:/chartwatch-paper/calculate-hews-news-scores.R",
+    "project_path" : "calculate-hews-news-scores.R",
+    "properties" : {
+        "cursorPosition" : "614,0",
+        "scrollLine" : "600",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
