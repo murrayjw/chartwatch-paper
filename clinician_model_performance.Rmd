@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 This document looks at the model performance of the clinician predictions with a comparison against the MARS CHARTwatch model. The CHARTwatch model usually generates predictions 3 times a day, but for a fair comparison of clinician vs model predictions, we only run the CHARTwatch at times when the clincians generated their predictions. 
 
 
-```{r, echo=F, message=F, warning=F}
+```{r echo=F, message=FALSE, warning=FALSE}
 # load the require libraries ----------------------------------------------
 
 # load the require libraries ----------------------------------------------
@@ -22,10 +22,12 @@ library(pROC)
 library(tidyverse)
 
 # threshold from model retraining to Aprils
+# Where does this threshold come from?
+# Not the same as thresholds from here: https://github.com/LKS-CHART/chartwatch/blob/master/R/constants.R#L4
 threshold <- .0905
 
-prediction_outcomes <- readr::read_csv('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\practitioner_predictions_outcomes.csv')
-load("Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\model_predictions.Rda")
+prediction_outcomes <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv')
+load("/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/model_predictions.Rda")
 
 phys_enc <- unique(prediction_outcomes$ENCOUNTER_NUM)
 mod_enc <- unique(model_predictions$ENCOUNTER_NUM)
@@ -47,6 +49,7 @@ model <- model_predictions %>%
 
 clinician_sum <- clinician %>% 
   group_by(ENCOUNTER_NUM) %>% 
+  # What do mp and mp48 stand for?
   summarize(mp = max(ever),
             mp48 = max(next48),
             outcome = max(outcome),
@@ -64,7 +67,9 @@ model <- model %>%
 
 ## Descriptive statistics
 
-There were 169 clincians who generated 3,375 predictions on  961 patient encounters between April 30th and August 28th 2019.  The model generated 2,737 predictions for the 961 patient encounters.
+There were 169 clincians who generated 3,375 predictions on  961 patient encounters between April 30th and August 28th 2019.  The model generated 2,737 predictions for the 961 patient encounters. 
+
+How were model predictions computed? Is it possible to also get 3,375 model predictions?
 
 Below is a breakdown of the number of predictions by professional role
 
@@ -81,7 +86,45 @@ clinician %>%
 ```
 
 
-In total there were 68 patiens (7.08%) patients who experienced an outcome at some time after a prediction was made. There were 44 patients (4.58%) that experienced an outcome within 48 hours of a prediction. Below is a table of outcomes
+```{r echo = FALSE, outcomes}
+prediction_outcomes %>%
+  summarize(num_patients = length(unique(MRN)),
+            num_predictions = n(),
+            num_encounters = length(unique(ENCOUNTER_NUM)),
+            num_outcomes_ever = sum(outcome),
+            num_outcome_48 = sum(outcome48)) %>%
+  knitr::kable(caption = "Prediction-level summary")
+
+prediction_outcomes %>%
+  group_by(ENCOUNTER_NUM) %>%
+  summarize(outcome = max(outcome),
+            pal = max(pal),
+            icu = max(icu),
+            death = max(death),
+            
+            outcome48 = max(outcome48)) %>%
+  count(outcome, outcome48) %>%
+  mutate(pct  = n / sum(n))  %>%
+  knitr::kable(caption = "Results grouped by ENCOUNTER_NUM")
+
+prediction_outcomes %>%
+  group_by(MRN) %>%
+  summarize(outcome = max(outcome),
+            pal = max(pal),
+            icu = max(icu),
+            death = max(death),
+            
+            outcome48 = max(outcome48)) %>%
+  count(outcome, outcome48) %>%
+  mutate(pct  = n / sum(n))  %>%
+  knitr::kable(caption = "Results grouped by MRN")
+
+# Difference between prediction_outcomes, distinct_outcomes and clinician variables?
+distinct_outcomes %>%
+  count(OUTCOME, outcome48) %>%
+  knitr::kable(caption = "Breakdown of distinct outcomes")
+```
+In total there were 73 (73/960 = 7.60%) visits who experienced an outcome at some time after a prediction was made. There were 44 visits (44/960 = 4.58%) that experienced an outcome within 48 hours of a prediction. Does it make sense to compute this at prediction-level? Below is a table of outcomes
 
 ```{r, echo=F}
 
@@ -113,7 +156,8 @@ outcome_table <- tibble(`Outcome Type` = c("Death",
                         `Outcome in 48 hours` = c(outcome48$death, outcome48$icu,
                                                   outcome48$pal))
 
-knitr::kable(outcome_table)
+knitr::kable(outcome_table,
+             caption = "Outcomes of predictions grouped by encounter")
 
 ```
 
@@ -125,7 +169,7 @@ knitr::kable(outcome_table)
 
 ## Performance of All Clincians
 
-As a baseline check of model performance, we look at the accuracy of all clinician predictions against the outcome of death/icu/palliative transfer at any point in the patient stay. We can think of each clinician as its own model. This will mean multiple clinicians can predict on the same patient at the same time. Later we will look at average performance per clinician (and by role). 
+As a baseline check of model performance, we look at the accuracy of all clinician predictions against the outcome of death/icu/palliative transfer at any point in the patient stay. We can think of each clinician as its own model. This will mean multiple clinicians can predict on the same patient at the same time. Later we will look at average performance per clinician (and by role).  This treats each clinician prediction as a separate event
 
 
 ```{r, warning=F, message=F}
@@ -137,19 +181,23 @@ roc_obj_ever <- roc(clinician$outcome, clinician$ever, plot=F, ci=TRUE, main = "
 roc_obj_ever
 
 cat("AUC of outcome in next 48 hours\n")
-roc_obj_ever <- roc(clinician$outcome48, clinician$next48, plot=F, ci=TRUE, main = "Outcome in next 48 hours")
+roc_obj_48 <- roc(clinician$outcome48, clinician$next48, plot=F, ci=TRUE, main = "Outcome in next 48 hours")
 
-roc_obj_ever
+roc_obj_48
+
 
 confusionMatrix(factor(clinician$ever, levels = c(0, 1)), factor(clinician$outcome, levels = c(0,1)), positive = "1")
 
-
+confusionMatrix(factor(clinician$next48, levels = c(0, 1)), factor(clinician$outcome48, levels = c(0,1)), positive = "1")
 ```
 
-The AUC of all clinicians together is 0.603 (95% CI: 0.58-0.63) for an outcome occuring at any time and 0.63 (95% CI: .67-0.69) in the next 48 hours. The Sensitivity is 0.30 while the positive predictive value is .33. 
+The AUC of all clinicians together is 0.5962 (95% CI: 0.5743-0.6182) for an outcome occuring at any time and 0.5963 (95% CI: 0.5437-0.6488) in the next 48 hours. The Sensitivity is 0.30 while the positive predictive value is .33. Where are sensitivity and PPV computed?
 
 
 ## Overall performance of the model
+
+AUC of model (ever): 0.7004 (95% CI: 0.6708-0.7299)
+AUC of model (next 48 hours): 0.7525 (95% CI: 0.677-0.8279)
 
 ```{r, echo=F, message=F, warning=F}
 
@@ -158,14 +206,17 @@ roc_obj_ever <- roc(model$outcome, model$last_score, plot=TRUE, ci=TRUE, main = 
 roc_obj_ever
 
 
-roc_obj_ever <- roc(model$outcome48, model$last_score, plot=TRUE, ci=TRUE, main = "Outcome in next 48 hours")
+# Why is comparison between last_score and outcome columns?
+roc_obj_48<- roc(model$outcome48, model$last_score, plot=TRUE, ci=TRUE, main = "Outcome in next 48 hours")
 
-roc_obj_ever
+roc_obj_48
 
 
 
 
 confusionMatrix(factor(as.numeric(model$last_score > threshold), levels = c(0, 1)), factor(model$outcome, levels = c(0,1)), positive = "1")
+
+confusionMatrix(factor(as.numeric(model$last_score > threshold), levels = c(0, 1)), factor(model$outcome48, levels = c(0,1)), positive = "1")
 
 
 ```
@@ -182,6 +233,14 @@ THere were 54 clinicians (31%) who's patient never experienced an outcome. Of th
 
 
 ```{r, echo=F}
+clinician %>%
+  summarize(
+    num_clinicians = length(unique(clinicianid)),
+    num_predictions = n()
+  )  %>%
+  mutate(preds_per_clinician = num_predictions / num_clinicians) %>%
+  knitr::kable(caption = "Clinician summary")
+
 clinician_sum_ever <- clinician %>% 
   group_by(clinicianid) %>% 
   summarize(role = max(professional_role),
@@ -199,7 +258,7 @@ clinician_sum_ever <- clinician %>%
             ppv = sum(ever ==1 & outcome == 1)/sum(ever == 1))
 
 DT::datatable(clinician_sum_ever,
-              caption = "Performance by each clinician on any event",
+              caption = "Performance by each clinician on any event (ever)",
               options = list(scrollX = T))
 
 ```
@@ -211,7 +270,7 @@ a <- clinician_sum_ever %>%
   filter(!is.na(sensitivity))
 
 
-CIs <- binom.confint(x=a$patients_identified, n=a$patients_with_outcome, methods="wilson")
+CIs <- binom::binom.confint(x=a$patients_identified, n=a$patients_with_outcome, methods="wilson")
 
 a <- a %>% bind_cols(CIs)
 a %>% 
@@ -222,7 +281,7 @@ qplot(x=clinicianid, y=patients_identified/patients_with_outcome, ymin=lower, ym
 
 a %>% 
   ggplot(aes(sensitivity)) + geom_histogram() +
-  ggtitle("Sensitivities for each clinician") +
+  ggtitle("Sensitivities (ever) for each clinician") +
   xlab("Sensitivity") +
   ylab("Count")
 
@@ -240,25 +299,23 @@ a %>%
 ```
 
 
-Below is the same plot with a courser grouping of clinicians (physician, resident, nurse). Clinicians have the highest sensitivity at 0.23 (IQR: 0.0 -.51)
+Below is the same plot with a courser grouping of clinicians (physician, resident, nurse). Clinicians have the highest sensitivity at 0.23 (IQR: 0.0 -.51) Different numbers!
 
 
 ```{r, echo =F}
 
-a <- a %>%
+a %>%
   mutate(role = case_when(
    grepl("Physician|Pyysician", role, ignore.case = T) ~ "Physician",
    grepl("Resident", role, ignore.case = T) ~ "Resident",
    grepl("Nurse", role, ignore.case = T) ~ "Nurse",
   TRUE ~ NA_character_
-))
-
-a %>% 
+)) %>% 
   group_by(role) %>% 
   summarize(number_clinicians = n_distinct(clinicianid),
-            median_sens = median(sens),
-            q25_sens = quantile(sens, .25),
-            q75_sens = quantile(sens, .75)) %>% 
+            median_sens = median(sensitivity),
+            q25_sens = quantile(sensitivity, .25),
+            q75_sens = quantile(sensitivity, .75)) %>% 
   arrange(desc(median_sens)) %>% 
   DT::datatable(caption = "performance by professional role")
 
@@ -267,11 +324,23 @@ a %>%
 
 ### PPV
 
-THere were 67 clinicians (39.6%) that never made a positive prediction.  Of the remaining 102 clinicians, 50 (49.0%) had a positive predictive value of 0. The plot below displays a histogram of positive predictive values for each clinician (median = 0.11, IQR: 0.0 -.50). Fourteen clinicians had perfect PPV. 
+THere were 67 clinicians (40.11%) that never made a positive prediction.  Of the remaining 100 clinicians,  49 (49/100 = 49%) had a positive predictive value of 0. The plot below displays a histogram of positive predictive values for each clinician (median = 0.13, IQR: 0.0-0.4583). Twelve clinicians had perfect PPV. 
 
 
 ```{r, echo=F}
-b <- clinician_sum %>% 
+
+clinician_sum_ever %>%
+  mutate(ppv_exists = if_else(is.na(ppv),1 , 0)) %>%
+  count(ppv_exists) %>%
+  mutate(ratio = n /sum(n)) %>%
+  knitr::kable(caption = "Positive predictions")
+
+clinician_sum_ever %>%
+  count(ppv) %>%
+  knitr::kable(caption = "Breakdown of PPV")
+
+
+b <- clinician_sum_ever %>% 
   filter(!is.na(ppv))
 
 b %>% 
@@ -279,6 +348,10 @@ b %>%
   ggtitle("Positive Predictive Value for each clinician") +
   xlab("Positive Predictive Value") +
   ylab("Count")
+
+b$ppv %>%
+  quantile(na.rm = TRUE) %>%
+  knitr::kable(caption = "Quantiles of PPV ever")
 
 
 ```
