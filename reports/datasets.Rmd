@@ -1,0 +1,83 @@
+---
+title: ""
+date: "`r Sys.Date()`"
+output:
+  rmdformats::material:
+    highlight: kate
+---
+
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rmdformats)
+library(dplyr)
+library(knitr)
+library(lubridate)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r echo = FALSE}
+
+# Data split code:
+# https://github.com/LKS-CHART/gim_ews/blob/master/retrain_preprocessing/split_data_2020_0120.R
+
+# Train data
+# https://github.com/LKS-CHART/gim_ews/blob/master/numeric-only-R-models/fit-mars-model.R#L12
+train_encounters <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/retraining_2020_0120/train/encounters.csv")
+
+# Valid data?
+valid_encounters <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/retraining_2020_0120/valid/encounters.csv")
+
+# Valid data - used to train ensemble
+# https://github.com/LKS-CHART/gim_ews/blob/master/ensemble/ensemble_helper.R#L10
+valid_encounters_tuned <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/validation_data_sep2019_jan2020/data_exploration/all_model_predictions.csv")
+
+# Data to tune time-aware MARS threshold?
+
+```
+
+```{r echo = FALSE}
+train_encounters %>%
+  mutate(ADMIT_TS = lubridate::ymd_hms(ADMIT_TS),
+         OUTCOME_TS = lubridate::ymd_hms(OUTCOME_TS)) %>%
+  summarize(
+    n = n(),
+    start_date = min(ADMIT_TS),
+    end_date = max(OUTCOME_TS)
+  ) %>%
+  kable(caption = "Train data")
+
+valid_encounters %>%
+  mutate(ADMIT_TS = lubridate::ymd_hms(ADMIT_TS),
+         OUTCOME_TS = lubridate::ymd_hms(OUTCOME_TS)) %>%
+  summarize(
+    n = n(),
+    start_date = min(ADMIT_TS),
+    end_date = max(OUTCOME_TS)
+  ) %>%
+  kable(caption = "Valid data")
+
+
+valid_encounters_tuned %>%
+  count(prediction_hour) %>%
+  kable(caption = "Validation data - used to tune")
+
+valid_encounters_tuned %>%
+  mutate(prediction_time = lubridate::ymd_hms(prediction_time)) %>%
+  summarise(
+    n = n_distinct(ENCOUNTER_NUM),
+    start_date = min(prediction_time),
+    end_date = max(prediction_time)
+  ) %>%
+  kable(caption = "Validation data - used to tune")
+```
