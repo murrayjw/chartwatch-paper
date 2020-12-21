@@ -1,450 +1,0 @@
-[0m[0KMicrosoft Windows [Version 10.0.15063][0K[?25l
-(c) 2017 Microsoft Corporation. All rights reserved.[0K
-[0K
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git i[0K[?25hn[0Ki[0Kt[0K]0;  - git  init[?25l
-[0K[?25h]0; Initialized empty Git repository in H:/chartwatch-paper/.git/[0K[?25l
-[0K
-H:\chartwatch-paper>[0K[?25hgit remote add origin https://github.com/murrayjw/[0Kc[?25l
-hartwatch-paper.git[0K[?25h[?25l
-[0K[?25h]0;]0; [?25l
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git a[0K[?25hd[0Kd[0K[29G[28G[?25lH:\chartwatch-paper>git ad[0K[?25h[?25lH:\chartwatch-paper>git a[0K[?25h[?25lH:\chartwatch-paper>git[0K[25G[?25h[24G[?25lH:\chartwatch-paper>g[0K[?25h[?25lH:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git a[0K[?25hd[0Kd[0K[29G[?25lH:\chartwatch-paper>git add .[0K[?25h]0;  - git  add .[?25l
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/12CE461F.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/3855A02D.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/4C83E9CE.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/56AC2376.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/5ACBB98F.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/65DC7662.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/84E7115C.[0K
-The file will have its original line endings in your working directory[0K
-warning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr
-op/A55E24D9.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/E3A39CEF.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/p[0Kr[?25l
-op/INDEX.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/155AA0BB-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/2FDC1C2E-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25h[?25lwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[1G[?25h[?25l
-6AC33605/41476081-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/47E02822-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/878A4387.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/878A4387-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/893194C7-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/B8A334F7-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/E53F1635-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/C21AE26A/sources/s[0K-[?25l
-6AC33605/FD53B006-contents.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25hwarning: LF will be replaced by CRLF in .Rproj.user/shared/notebooks/p[0Ka[?25l
-ths.[0K
-The file will have its original line endings in your working directory[0K
-[0K[?25h]0; [?25l
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git a[0K[?25h[?25lH:\chartwatch-paper>git[0K[25G[?25h[?25lH:\chartwatch-paper>git c[0K[?25ho[0Km[0Kmit[0K[32G[?25lH:\chartwatch-paper>git commit -[0K[?25hm[0K[35G[?25lH:\chartwatch-paper>git commit -m "[0K[?25hi[0Kn[0Ki[0Kt[0Ki[0Ka[0Kl[0K[44G[?25lH:\chartwatch-paper>git commit -m "initial c[0K[?25ho[0Kmm[0Ki[0Kt[0K"[0K]0;[?25l
-[0K[?25h[master (root-commit) 07c3702] initial commit[0K[?25l
- 44 files changed, 11306 insertions(+)[0K
- create mode 100644 .Rproj.user/C21AE26A/console06/21708D0B[0K
- create mode 100644 .Rproj.user/C21AE26A/console06/INDEX001[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/12CE461F[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/3855A02D[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/4C83E9CE[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/56AC2376[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/5ACBB98F[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/65DC7662[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/84E7115C[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/A55E24D9[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/E3A39CEF[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/INDEX[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/155AA0BB-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/2FDC1C2E-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/41476081-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/47E02822-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/878A4387[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/878A4387-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/893194C7-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/B8A334F7-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/E53F1635-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/FD53B006-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/lock_file[0K
- create mode 100644 .Rproj.user/shared/notebooks/67A765AE-clinician_mo[0Kd
-el_performance/1/C21AE26A6AC33605/chunks.json[0K
- create mode 100644 .Rproj.user/shared/notebooks/67A765AE-clinician_mo[0Kd
-el_performance/1/s/chunks.json[0K
- create mode 100644 .Rproj.user/shared/notebooks/patch-chunk-names[0K
- create mode 100644 .Rproj.user/shared/notebooks/paths[0K
- create mode 100644 00-generate-random-study-ids.R[0K
- create mode 100644 01-generate-daily-patient-list.R[0K
- create mode 100644 02-deidentify-mrns.R[0K
- create mode 100644 03-extract-all-predictions.R[0K
- create mode 100644 04-extract-gim-encounters.R[0K
- create mode 100644 05-extract-model-data.R[0K
- create mode 100644 06-extract-pract-outcomes.R[0K
- create mode 100644 automate-patient-list.R[0K
- create mode 100644 calculate-clinician-performance.R[0K
- create mode 100644 calculate-news-hews-performance.R[0K
- create mode 100644 chartwatch-paper.Rproj[0K
- create mode 100644 clinician_model_performance.Rmd[0K
- create mode 100644 clinician_model_performance.html[0K
- create mode 100644 extract-data-helpers.R[0K
- create mode 100644 helpers.R[0K
- create mode 100644 hews-news-pred.R[0K
- create mode 100644 raw-query-utils.R[0K
-[0K[?25h]0; [?25l
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git p[0K[?25hu[0Ks[0Kh[0K[30G[?25lH:\chartwatch-paper>git push o[0K[?25hr[0Ki[0Kg[0Ki[0Kn[0K[?25lH:\chartwatch-paper>git push origi[0K[?25h[?25lH:\chartwatch-paper>git push orig[0K[?25h[?25lH:\chartwatch-paper>git push ori[0K[?25h[?25lH:\chartwatch-paper>git push or[0K[?25h[?25lH:\chartwatch-paper>git push o[0K[?25h[?25lH:\chartwatch-paper>git push[0K[30G[?25h[29G[?25lH:\chartwatch-paper>git pu[0K[?25h[?25lH:\chartwatch-paper>git[0K[25G[?25h[24G[?25lH:\chartwatch-paper>gi[0K[?25h[?25lH:\chartwatch-paper>g[0K[?25h[?25lH:\chartwatch-paper>[0K[?25hgit commit -m "initial commit"[0K[?25lH:\chartwatch-paper>git commit -m "initial commit[0K[?25h[?25lH:\chartwatch-paper>git commit -m "initial commi[0K[?25h[?25lH:\chartwatch-paper>git commit -m "initial comm[0K[?25h[?25lH:\chartwatch-paper>git commit -m "initial com[0K[?25h[?25lH:\chartwatch-paper>git commit -m "initial co[0K[?25h[?25lH:\chartwatch-paper>git commit -m "initial c[0K[?25h[?25lH:\chartwatch-paper>git commit -m "initial[0K[44G[?25h[43G[?25lH:\chartwatch-paper>git commit -m "initia[0K[?25h[?25lH:\chartwatch-paper>git commit -m "initi[0K[?25h[?25lH:\chartwatch-paper>git commit -m "ini[0K[?25h[?25lH:\chartwatch-paper>git commit -m "in[0K[?25h[?25lH:\chartwatch-paper>git commit -m "i[0K[?25h[?25lH:\chartwatch-paper>git commit -m "[0K[?25h[?25lH:\chartwatch-paper>git commit -m[0K[35G[?25h[?25lH:\chartwatch-paper>git commit -[0K[?25h[?25lH:\chartwatch-paper>git commit[0K[32G[?25h[31G[?25lH:\chartwatch-paper>git commi[0K[?25h[?25lH:\chartwatch-paper>git comm[0K[?25h[?25lH:\chartwatch-paper>git com[0K[?25h[?25lH:\chartwatch-paper>git co[0K[?25h[?25lH:\chartwatch-paper>git c[0K[?25h[?25lH:\chartwatch-paper>git[0K[25G[?25h[24G[?25lH:\chartwatch-paper>g[0K[?25h[?25lH:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git l[0K[?25ho[0Kg[0K]0;  - git  log[?25l
-[0K[?25h]0; [0;33mcommit 07c3702dc98979c99ef87aa8b76852faf074fe20 ([0;36;96mHEAD -> [0;32;92mmaster[0;33m)[0m[0K[?25l
-Author: Joshua Murray <murrayj@smh.ca>[0K
-Date:   Tue Dec 15 15:07:22 2020 -0500[0K
-[0K
-    initial commit[0K
-[0K
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git s[0K[?25ht[0Kat[0Ku[0Ks[0K]0;  - git  status[?25l
-[0K[?25h]0; On branch master[0K[?25l
-Changes not staged for commit:[0K
-  (use "git add/rm <file>..." to update what will be committed)[0K
-  (use "git checkout -- <file>..." to discard changes in working direc[0Kt
-ory)[0K
-[0K
-        [0;31mmodified:   .Rproj.user/C21AE26A/console06/21708D0B[0m[0K
-        [0;31mmodified:   .Rproj.user/C21AE26A/console06/INDEX001[0m[0K
-        [0;31mmodified:   .Rproj.user/C21AE26A/sources/prop/INDEX[0m[0K
-        [0;31mmodified:   .Rproj.user/shared/notebooks/paths[0m[0K
-        [0;31mdeleted:    hews-news-pred.R[0m[0K
-[0K
-Untracked files:[0K
-  (use "git add <file>..." to include in what will be committed)[0K
-[0K
-        [0;31m.Rproj.user/C21AE26A/sources/prop/FF6F2AEB[0m[0K
-        [0;31m.Rproj.user/C21AE26A/sources/s-6AC33605/4E9A017D-contents[0m[0K
-[0K
-no changes added to commit (use "git add" and/or "git commit -a")[0K
-[0K
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git a[0K[?25hd[0Kd[0K[29G[?25lH:\chartwatch-paper>git add .[0K[?25h[?25lH:\chartwatch-paper>git add[0K[29G[?25h[?25lH:\chartwatch-paper>git add h[0K[?25he[0Kw[0K-[0Kn[0Ke[0Kw[0Ks[0K-[0Kp[0Kr[0Ke[0Kd[0K.[0KR[0K[43G[42G[41G[40G[39G[38G[37G[36G[34G[33G[32G[31G[32G[?25lH:\chartwatch-paper>git add hews-news-pred.R[0K[33G[?25h]0;  - git  add hews-news-pred.R[?25l
-[0K[?25h]0; [?25l
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git c[0K[?25ho[0Km[0Km[0Ki[0Kt[0K[32G[?25lH:\chartwatch-paper>git commit -[0K[?25h-[0K[35G[?25lH:\chartwatch-paper>git commit -- a[0K[?25h[?25lH:\chartwatch-paper>git commit --[0K[35G[?25h[34G[?25lH:\chartwatch-paper>git commit --a[0K[?25hm[0Km[0K[?25lH:\chartwatch-paper>git commit --am[0K[?25he[0Kn[0Kd[0K[40G[?25lH:\chartwatch-paper>git commit --amend "[0K[?25hr[0Ke[0Km[0Ko[0Kv[0Ke[0Kd[0K[49G[?25lH:\chartwatch-paper>git commit --amend "removed h[0K[?25he[0Kw[0Ks[0K[?25lH:\chartwatch-paper>git commit --amend "removed hew[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "removed he[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "removed h[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "removed[0K[49G[?25h[48G[?25lH:\chartwatch-paper>git commit --amend "remove[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "remov[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "remo[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "rem[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "re[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "r[0K[?25h[?25lH:\chartwatch-paper>git commit --amend "[0K[?25h[?25lH:\chartwatch-paper>git commit --amend[0K[40G[?25h]0;  - git  commit --amend [?25l
-[0K[?25hhint: Waiting for your editor to close the file...[0K[52G[0m[1;1H[2J[?25l[0m[0K[?25h[?25l
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-"H:/chartwatch-paper/.git/COMMIT_EDITMSG"[0K[?25h[?25l<ch-paper/.git/COMMIT_EDITMSG" [converted][unix] 66L, 3056C[0K[?25h[?25l[12A[?25h[?25l[0;33;93minitial commit[0m[0K
-[0K
-[0;36;96m# Please enter the commit message for your changes. Lines starting[0m[0K
-[0;36;96m# with '#' will be ignored, and an empty message aborts the commit.[0m[0K
-[0;36;96m#[0m[0K
-[0;36;96m# Date:      Tue Dec 15 15:07:22 2020 -0500[0m[0K
-[0;36;96m#[0m[0K
-[0;36;96m# On branch [0;31;91mmaster[0m[0K
-[0;36;96m#[0m[0K
-[0;36;96m# Initial commit[0m[0K
-[0;36;96m#[0m[0K
-[0;7m</chartwatch-paper/.git/COMMIT_EDITMSG [unix] (15:09 15/12/2020)1,1 To[0Kp
-[0m<ch-paper/.git/COMMIT_EDITMSG" [converted][unix] 66L, 3056C[0K[12A[?25h[?25l
-
-
-
-
-
-
-
-
-
-
-
-:[0K[?25hw[0Kq[0K[?25l"H:/chartwatch-paper/.git/COMMIT_EDITMSG"[0K[?25h[?25l</.git/COMMIT_EDITMSG" [converted][unix] 66L, 3056C written[0K[?25h[?25l[12A[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0K
-[0;33mcommit 07c3702dc98979c99ef87aa8b76852faf074fe20 ([0;36;96mHEAD -> [0;32;92mmaster[0;33m)[0m[0K
-Author: Joshua Murray <murrayj@smh.ca>[0K
-Date:   Tue Dec 15 15:07:22 2020 -0500[0K
-[0K
-    initial commit[0K
-[0K
-H:\chartwatch-paper>git status[0K
-On branch master[0K
-Changes not staged for commit:[0K
-  (use "git add/rm <file>..." to update what will be committed)[0K
-  (use "git checkout -- <file>..." to discard changes in working direc[0Kt
-ory)[0K
-[0K
-        [0;31mmodified:   .Rproj.user/C21AE26A/console06/21708D0B[0m[0K
-        [0;31mmodified:   .Rproj.user/C21AE26A/console06/INDEX001[0m[0K
-        [0;31mmodified:   .Rproj.user/C21AE26A/sources/prop/INDEX[0m[0K
-        [0;31mmodified:   .Rproj.user/shared/notebooks/paths[0m[0K
-        [0;31mdeleted:    hews-news-pred.R[0m[0K
-[0K
-Untracked files:[0K
-  (use "git add <file>..." to include in what will be committed)[0K
-[0K
-        [0;31m.Rproj.user/C21AE26A/sources/prop/FF6F2AEB[0m[0K
-        [0;31m.Rproj.user/C21AE26A/sources/s-6AC33605/4E9A017D-contents[0m[0K
-[0K
-no changes added to commit (use "git add" and/or "git commit -a")[0K
-[0K
-H:\chartwatch-paper>git add hews-news-pred.R[0K
-[0K
-H:\chartwatch-paper>git commit --amend[0K
-hint: Waiting for your editor to close the file...[0K[52G[?25h[?25l[0K[?25h[master 8fdf7cd] initial commit[0K[?25l
- Date: Tue Dec 15 15:07:22 2020 -0500[0K
- 43 files changed, 11306 insertions(+)[0K
- create mode 100644 .Rproj.user/C21AE26A/console06/21708D0B[0K
- create mode 100644 .Rproj.user/C21AE26A/console06/INDEX001[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/12CE461F[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/3855A02D[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/4C83E9CE[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/56AC2376[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/5ACBB98F[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/65DC7662[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/84E7115C[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/A55E24D9[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/E3A39CEF[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/prop/INDEX[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/155AA0BB-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/2FDC1C2E-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/41476081-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/47E02822-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/878A4387[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/878A4387-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/893194C7-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/B8A334F7-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/E53F1635-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/FD53B006-c[0Ko
-ntents[0K
- create mode 100644 .Rproj.user/C21AE26A/sources/s-6AC33605/lock_file[0K
- create mode 100644 .Rproj.user/shared/notebooks/67A765AE-clinician_mo[0Kd
-el_performance/1/C21AE26A6AC33605/chunks.json[0K
- create mode 100644 .Rproj.user/shared/notebooks/67A765AE-clinician_mo[0Kd
-el_performance/1/s/chunks.json[0K
- create mode 100644 .Rproj.user/shared/notebooks/patch-chunk-names[0K
- create mode 100644 .Rproj.user/shared/notebooks/paths[0K
- create mode 100644 00-generate-random-study-ids.R[0K
- create mode 100644 01-generate-daily-patient-list.R[0K
- create mode 100644 02-deidentify-mrns.R[0K
- create mode 100644 03-extract-all-predictions.R[0K
- create mode 100644 04-extract-gim-encounters.R[0K
- create mode 100644 05-extract-model-data.R[0K
- create mode 100644 06-extract-pract-outcomes.R[0K
- create mode 100644 automate-patient-list.R[0K
- create mode 100644 calculate-clinician-performance.R[0K
- create mode 100644 calculate-news-hews-performance.R[0K
- create mode 100644 chartwatch-paper.Rproj[0K
- create mode 100644 clinician_model_performance.Rmd[0K
- create mode 100644 clinician_model_performance.html[0K
- create mode 100644 extract-data-helpers.R[0K
- create mode 100644 helpers.R[0K
- create mode 100644 raw-query-utils.R[0K
-[0K[?25h]0; [?25l
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git l[0K[?25ho[0Kg[0K]0;  - git  log[?25l
-[0K[?25h]0; [0;33mcommit 8fdf7cd3d14fb96bd3862e7588714b1aaf90459e ([0;36;96mHEAD -> [0;32;92mmaster[0;33m)[0m[0K[?25l
-Author: Joshua Murray <murrayj@smh.ca>[0K
-Date:   Tue Dec 15 15:07:22 2020 -0500[0K
-[0K
-    initial commit[0K
-[0K
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git p[0K[?25hu[0Ks[0Kh[0K[30G[?25lH:\chartwatch-paper>git push o[0K[?25hr[0Ki[0Kg[0Ki[0Kn[0K[37G[?25lH:\chartwatch-paper>git push origin m[0K[?25ha[0Ki[0Kn[0K]0;  - git  push origin main[?25l
-[0K[?25herror: src refspec main does not match any.[0K[?25l
-[0;31merror: failed to push some refs to 'https://github.com/murrayjw/chartw[0Ka
-tch-paper.git'[0m[0K
-[0K[?25h]0; [?25l
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git b[0K[?25hr[0Ka[0Kn[0Kc[0Kh[0K]0;  - git  branch[?25l
-[0K[?25h]0; * [0;32mmaster[0m[0K[?25l
-[0K
-H:\chartwatch-paper>[0K[?25hgit branch[0K[?25lH:\chartwatch-paper>git push origin main[0K[?25h[?25lH:\chartwatch-paper>git push origin mai[0K[?25h[?25lH:\chartwatch-paper>git push origin ma[0K[?25hs[0Kt[0Ke[0Kr[0K]0;  - git  push origin master[?25l
-[0K[?25hEnumerating objects: 43, done.[0K[?25l
-[0K[?25h[?25lCounting objects:   4% (2/43)[0K[1G[?25h[?25lCounting objects:  11% (5/43)[0K[1G[?25h[?25lCounting objects:  20% (9/43)[0K[1G[?25h[?25lCounting objects:  30% (13/43)[0K[1G[?25h[?25lCounting objects:  37% (16/43)[0K[1G[?25h[?25lCounting objects:  44% (19/43)[0K[1G[?25h[?25lCounting objects:  51% (22/43)[0K[1G[?25h[?25lCounting objects:  60% (26/43)[0K[1G[?25h[?25lCounting objects:  67% (29/43)[0K[1G[?25h[?25lCounting objects:  72% (31/43)[0K[1G[?25h[?25lCounting objects:  81% (35/43)[0K[1G[?25h[?25lCounting objects:  93% (40/43)[0K[1G[?25hCounting objects: 100% (43/43), done.[0K[?25l
-Delta compression using up to 8 threads[0K
-Compressing objects:   5% (2/38)[0K[1G[?25h[?25lCompressing objects:  10% (4/38)[0K[1G[?25h[?25lCompressing objects:  23% (9/38)[0K[1G[?25h[?25lCompressing objects:  36% (14/38)[0K[1G[?25h[?25lCompressing objects:  42% (16/38)[0K[1G[?25h[?25lCompressing objects:  50% (19/38)[0K[1G[?25h[?25lCompressing objects:  63% (24/38)[0K[1G[?25h[?25lCompressing objects:  71% (27/38)[0K[1G[?25h[?25lCompressing objects:  84% (32/38)[0K[1G[?25h[?25lCompressing objects:  94% (36/38)[0K[1G[?25hCompressing objects: 100% (38/38), done.[0K[?25l
-Writing objects:   4% (2/43)[0K[1G[?25h[?25lWriting objects:  13% (6/43)[0K[1G[?25h[?25lWriting objects:  20% (9/43)[0K[1G[?25h[?25lWriting objects:  32% (14/43)[0K[1G[?25h[?25lWriting objects:  41% (18/43)[0K[1G[?25h[?25lWriting objects:  55% (24/43)[0K[2G[?25h[?25lWriting objects:  65% (28/43)[0K[1G[?25h[?25lWriting objects:  76% (33/43)[0K[1G[?25h[?25lWriting objects:  86% (37/43)[0K[1G[?25h[?25lWriting objects:  90% (39/43)[0K[1G[?25h[?25lWriting objects:  97% (42/43)[0K[1G[?25hWriting objects: 100% (43/43), 845.00 KiB | 1.66 MiB/s, done.[0K[?25l
-Total 43 (delta 3), reused 0 (delta 0)[0K
-[0K[?25hremote: Resolving deltas: 100% (3/3), done.[0K[?25l
-To https://github.com/murrayjw/chartwatch-paper.git[0K
- * [new branch]      master -> master[0K
-[0K[?25h]0; [?25l
-H:\chartwatch-paper>[0K[?25hg[0Ki[0Kt[0K[25G[?25lH:\chartwatch-paper>git a[0K[?25hd[0Kd[0K[29G[?25lH:\chartwatch-paper>git add .[0K[?25h]0;  - git  add .[?25l
-[0K[?25h
