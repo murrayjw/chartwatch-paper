@@ -1,5 +1,5 @@
-load('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\data-analysis\\hews-news-pred.Rda')
-
+#load('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\data-analysis\\hews-news-pred.Rda')
+load('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/data-analysis/hews-news-pred.Rda.R')
 
 split_path <- function(x) {
   if (dirname(x)==x) {
@@ -10,7 +10,9 @@ split_path <- function(x) {
 }
 
 
-ap <- readr::read_csv('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\practitioner_predictions_outcomes.csv')
+#ap <- readr::read_csv('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\practitioner_predictions_outcomes.csv')
+ap <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv')
+
 
 ap <- ap %>% 
   distinct(ENCOUNTER_NUM, timestamp, death_ever, death_48, icu_ever, icu_48,

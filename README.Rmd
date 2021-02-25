@@ -1,0 +1,25 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# chartwatch-paper
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+## Files
+
+| Filepath | Description | 
+| --- | --- |
+| /mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/train_vitals_data.csv | Raw vitals data (training set). Used to create Table 1. |
+| /mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_vitals_data_updated.csv | Raw vitals data (validation set). Used to create Table 1. |
+| /mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/test_vitals_data.csv | Raw vitals data (prospective test set). Used to create Table 1. |

@@ -1,0 +1,552 @@
+---
+title: "datasets"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+library(knitr)
+library(tableone)
+library(kableExtra)
+
+source("../constants.R")
+```
+
+```{r echo = FALSE, message = FALSE}
+data_folder <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data"
+
+
+train_data <- read.csv(file.path(data_folder, "train_encounters_data.csv"), stringsAsFactors = FALSE)
+train_encounters <- read.csv(file.path(data_folder, "train_encounters.csv"), stringsAsFactors = FALSE)
+train_vitals <- read.csv(file.path(data_folder, "train_vitals_data.csv"), stringsAsFactors = FALSE)
+
+
+valid_data_method1 <- read.csv(file.path(data_folder, "valid_encounters_data_method1.csv"), stringsAsFactors = FALSE)
+valid_encounters_method1 <- read.csv(file.path(data_folder, "valid_encounters_method1.csv"), stringsAsFactors = FALSE)
+valid_vitals_method1 <- read.csv(file.path(data_folder, "valid_vitals_data_method1.csv"), stringsAsFactors = FALSE)
+
+valid_data_method2 <- read.csv(file.path(data_folder, "valid_encounters_data_method2.csv"), stringsAsFactors = FALSE)
+valid_encounters_method2 <- read.csv(file.path(data_folder, "valid_encounters_method2.csv"), stringsAsFactors = FALSE)
+valid_vitals_method2 <- read.csv(file.path(data_folder, "valid_vitals_data_method2.csv"), stringsAsFactors = FALSE)
+
+
+test_data_method1 <- read.csv(file.path(data_folder, "test_encounters_data_method1.csv"), stringsAsFactors = FALSE)
+test_encounter_nums_method1 <- test_data_method1 %>% pull(ENCOUNTER_NUM)
+test_encounters_method1 <- read.csv(file.path(data_folder, "test_encounters_with_outcomes_method1.csv"), stringsAsFactors = FALSE) 
+test_outcomes_method1 <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv') %>%
+  filter(ENCOUNTER_NUM %in% test_encounter_nums_method1)
+test_vitals_method1 <- read.csv(file.path(data_folder, "test_vitals_data_method1.csv"), stringsAsFactors = FALSE)
+
+test_data_method2 <- read.csv(file.path(data_folder, "test_encounters_data_method2.csv"), stringsAsFactors = FALSE)
+test_encounter_nums_method2 <- test_data_method2 %>% pull(ENCOUNTER_NUM)
+test_encounters_method2 <- read.csv(file.path(data_folder, "test_encounters_with_outcomes_method2.csv"), stringsAsFactors = FALSE) 
+test_outcomes_method2 <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv') %>%
+  filter(ENCOUNTER_NUM %in% test_encounter_nums_method2)
+test_vitals_method2 <- read.csv(file.path(data_folder, "test_vitals_data_method2.csv"), stringsAsFactors = FALSE)
+
+```
+
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+
+process_data <- function(df) {
+  top_diag <- c("Pneumonia unspecified",
+                "Congestive heart failure",
+                "COPD with acute exacerbation unspecified",
+                "Urinary tract infection site not spec",
+                "Gastrointestinal haemorrhage NOS")
+  
+  df <- df %>%
+    # Get diagnosis codes
+    mutate(DIAGNOSIS = if_else(DIAGNOSIS_DESCR %in% top_diag, DIAGNOSIS_DESCR, "Other")) %>%
+    
+    # Change GENDER_CD to factor
+    mutate(GENDER_CD = factor(GENDER_CD, levels = c("M", "F"))) %>%
+    # Disposition
+    mutate(DISPOSITION = case_when(
+      DISCHARGE_DISPOSITION_DESCR %in% c("Home Without Services",
+                                         "Home with Support Services") ~ "Home",
+      DISCHARGE_DISPOSITION_DESCR %in%
+        c("Left Against Medical Advice/Walked Out", 
+          "Absent Without Leave-staff not notified",
+          "Did Not Return From Pass/Leave") ~ "Left Against Medical Advice",
+      DISCHARGE_DISPOSITION_DESCR == "Long Term Care/Nursing Home/Detox" ~ "Long Term Care",
+      DISCHARGE_DISPOSITION_DESCR == "Expired                             *EXP" ~ "Death",
+      DISCHARGE_DISPOSITION_DESCR %in%  c("Other Institution/ED/Day Surg/Ambulatory",
+                                          "Supp Housing/Grp/Shelter/Retirement hme",
+                                          "Palliative - Acute Hospital",
+                                          "Inpt Care - Acute, Rehab, CCC, Psych") ~ "Other institution",
+      TRUE ~ "Other"
+    )) %>%
+    mutate(LOS = as.numeric(difftime(DISCHARGE_TS, ADMIT_TS, units = "days")))
+  return(df)
+}
+
+los_sum <- function(data) {
+  data %>% 
+    filter( LOS < LOS_CUTOFF,
+            LOS > .25) %>% 
+    summarize(mean_los = median(LOS, na.rm = T),
+              q25 = quantile(LOS, .25, na.rm = T),
+              q75 = quantile(LOS, .75, na.rm = T),
+              sd_los = sd(LOS, na.rm = T), 
+              iqr_los = IQR(LOS, na.rm = T),
+              median_los = median(LOS, na.rm = T)) %>% 
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      `Mean (SD)` = paste0(
+        round(mean_los, digits = 2), 
+        " (",
+        round(sd_los, digits = 2), 
+        ")"),
+      `Median (IQR)` = paste0(
+        round(median_los, digits = 2),
+        " (",
+        round(iqr_los, digits = 2),
+        ")"
+      )
+    ) %>%
+    as.data.frame()
+  
+}
+
+vitals_sum <- function(data, train_data) {
+  
+  qs <- train_data %>% 
+    group_by(variable) %>% 
+    summarize(q1 = quantile(numeric_value, .01),
+              q99 = quantile(numeric_value, .99))
+  
+  data <- data %>% 
+    left_join(qs, by = "variable")
+  data <- data %>% 
+    mutate(numeric_value = ifelse( numeric_value < q1, q1,
+                                   ifelse(numeric_value > q99, q99, numeric_value)))
+  data %>% 
+    group_by(ENCOUNTER_NUM, variable) %>% 
+    arrange(timestamp) %>% 
+    filter(row_number() == 1) %>% 
+    group_by(variable) %>% 
+    summarize(mean_value = mean(numeric_value),
+              sd_value = sd(numeric_value),
+              med_value = median(numeric_value),
+              iqr_value = IQR(numeric_value),
+              q25 = quantile(numeric_value, .25),
+              q75 = quantile(numeric_value, .75)) %>% 
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      `Mean (SD)` = paste0(
+        round(mean_value, digits = 2), 
+        " (",
+        round(sd_value, digits = 2), 
+        ")"),
+      `Median (IQR)` = paste0(
+        round(med_value, digits = 2),
+        " (",
+        round(iqr_value, digits = 2),
+        ")"
+      )
+    ) %>%
+    dplyr::select(variable, `Mean (SD)`, `Median (IQR)`) %>%
+    as.data.frame()
+}
+```
+
+# Train data
+
+```{r echo = FALSE, message = FALSE}
+
+# Demographics
+tableone::CreateTableOne(data = process_data(train_data),
+                         vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
+  tableone::kableone(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE, 
+                     caption = "Demographics")%>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Length of stay
+los_sum(process_data(train_data)) %>%
+  kable(caption = "Length of stay") %>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Vitals
+vitals_sum(train_vitals, train_vitals) %>%
+  kable(caption = "Vitals") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Outcomes
+tableone::CreateTableOne(data = train_encounters, 
+                         vars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL", "gim_to_outcome"), 
+                         factorVars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL")) %>%
+  tableone::kableone(nonnormal = c("gim_to_outcome"), 
+                     showAllLevels = TRUE,
+                     caption = "Outcomes") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Time to outcome
+tte_by_outcome <- train_encounters %>%
+  mutate(outcome_type = case_when(OUTCOME_TYPE == 1 ~ "ICU",
+                                  OUTCOME_TYPE == 2 ~ "Death",
+                                  OUTCOME_TYPE == 3 ~ "Palliative",
+                                  OUTCOME_TYPE == 4 ~ "Palliative",
+                                  OUTCOME_TYPE == 5 ~ "Discharge")) %>%
+  filter(outcome_type != "Discharge") %>%
+  select(ENCOUNTER_NUM, gim_to_outcome, outcome_type) 
+
+tte_by_outcome %>%
+  dplyr::group_by(outcome_type) %>%
+  dplyr::summarize(
+    n = n(),
+    mean_tte = mean(gim_to_outcome),
+    sd_tte = sd(gim_to_outcome),
+    median_tte = median(gim_to_outcome),
+    iqr_tte = IQR(gim_to_outcome)
+  ) %>%
+  dplyr::mutate(
+    `Mean (SD)` = paste0(
+      round(mean_tte, digits = 2), 
+      " (",
+      round(sd_tte, digits = 2), 
+      ")"),
+    `Median (IQR)` = paste0(
+      round(median_tte, digits = 2),
+      " (",
+      round(iqr_tte, digits = 2),
+      ")"
+    ),
+    `N (%)` = paste0(
+      n,
+      " (", round(n / nrow(train_encounters) * 100, digits = 2),
+      "%)"
+    )
+  ) %>%
+  dplyr::select(outcome_type, `N (%)`, `Mean (SD)`, `Median (IQR)`) %>%
+  kable() %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+
+
+```
+
+# Validation and test data - method 1
+
+Method 1: Keep all test encounters. Filter validation encounters to remove any test encounters that appeared in it. Since the train/valid split is based on calendar date of the admission timestamp, there may be some test encounters that show up in the valid encounters dataset.
+
+## Validation data
+
+```{r echo = FALSE, message = FALSE}
+# Demographics
+tableone::CreateTableOne(data = process_data(valid_data_method1),
+                         vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
+  tableone::kableone(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE, 
+                     caption = "Demographics")%>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Length of stay
+los_sum(process_data(valid_data_method1)) %>%
+  kable(caption = "Length of stay") %>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Vitals
+vitals_sum(valid_vitals_method1, train_vitals) %>%
+  kable(caption = "Vitals") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Outcomes
+tableone::CreateTableOne(data = valid_encounters_method1, 
+                         vars = c("death", "post_gim_icu", "palliative_transfer", "gim_to_outcome"), 
+                         factorVars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL")) %>%
+  tableone::kableone(nonnormal = c("gim_to_outcome"), 
+                     showAllLevels = TRUE,
+                     caption = "Outcomes") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Time to outcome
+tte_by_outcome <- valid_encounters_method1 %>%
+  mutate(outcome_type = case_when(OUTCOME_TYPE == 1 ~ "ICU",
+                                  OUTCOME_TYPE == 2 ~ "Death",
+                                  OUTCOME_TYPE == 3 ~ "Palliative",
+                                  OUTCOME_TYPE == 4 ~ "Palliative",
+                                  OUTCOME_TYPE == 5 ~ "Discharge")) %>%
+  filter(outcome_type != "Discharge") %>%
+  select(ENCOUNTER_NUM, gim_to_outcome, outcome_type) 
+tte_by_outcome %>%
+  dplyr::group_by(outcome_type) %>%
+  dplyr::summarize(
+    n = n(),
+    mean_tte = mean(gim_to_outcome),
+    sd_tte = sd(gim_to_outcome),
+    median_tte = median(gim_to_outcome),
+    iqr_tte = IQR(gim_to_outcome)
+  ) %>%
+  dplyr::mutate(
+    `Mean (SD)` = paste0(
+      round(mean_tte, digits = 2), 
+      " (",
+      round(sd_tte, digits = 2), 
+      ")"),
+    `Median (IQR)` = paste0(
+      round(median_tte, digits = 2),
+      " (",
+      round(iqr_tte, digits = 2),
+      ")"
+    ),
+    `N (%)` = paste0(
+      n,
+      " (", round(n / nrow(valid_encounters_method1) * 100, digits = 2),
+      "%)"
+    )
+  ) %>%
+  dplyr::select(outcome_type, `N (%)`, `Mean (SD)`, `Median (IQR)`) %>%
+  kable() %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+```
+
+## Test data
+
+```{r echo = FALSE, message = FALSE}
+# Demographics
+tableone::CreateTableOne(data = process_data(test_data_method1),
+                         vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
+  tableone::kableone(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE, 
+                     caption = "Demographics")%>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Length of stay
+los_sum(process_data(test_data_method1)) %>%
+  kable(caption = "Length of stay") %>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Vitals
+vitals_sum(test_vitals_method1, train_vitals) %>%
+  kable(caption = "Vitals") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Outcomes
+tableone::CreateTableOne(data = test_encounters_method1 %>% 
+                           mutate(death = if_else(outcome_type_updated == "Death", 1, 0),
+                                  post_gim_icu = if_else(outcome_type_updated == "ICU", 1, 0),
+                                  palliative_transfer = if_else(outcome_type_updated == "Palliative transfer", 1, 0)), 
+                         vars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL", "gim_to_outcome"), 
+                         factorVars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL")) %>%
+  tableone::kableone(nonnormal = c("gim_to_outcome"), 
+                     showAllLevels = TRUE,
+                     caption = "Outcomes") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Time to outcome
+tte_by_outcome <- test_encounters_method1 %>%
+  filter(outcome_type_updated != "Discharge") %>%
+  select(ENCOUNTER_NUM, gim_to_outcome, outcome_type, ADMIT_TS, OUTCOME_TS)  %>%
+  mutate(tte = as.numeric(difftime(ymd_hms(OUTCOME_TS), ymd_hms(ADMIT_TS), unit = "day")))
+tte_by_outcome %>%
+  dplyr::group_by(outcome_type) %>%
+  dplyr::summarize(
+    n = n(),
+    mean_tte = mean(gim_to_outcome),
+    sd_tte = sd(gim_to_outcome),
+    median_tte = median(gim_to_outcome),
+    iqr_tte = IQR(gim_to_outcome)
+  ) %>%
+  dplyr::mutate(
+    `Mean (SD)` = paste0(
+      round(mean_tte, digits = 2), 
+      " (",
+      round(sd_tte, digits = 2), 
+      ")"),
+    `Median (IQR)` = paste0(
+      round(median_tte, digits = 2),
+      " (",
+      round(iqr_tte, digits = 2),
+      ")"
+    ),
+    `N (%)` = paste0(
+      n,
+      " (", round(n / nrow(test_encounters_method1) * 100, digits = 2),
+      "%)"
+    )
+  ) %>%
+  dplyr::select(outcome_type, `N (%)`, `Mean (SD)`, `Median (IQR)`) %>%
+  kable() %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+```
+
+# Validation and test data - method 2
+
+Method 2: Keep all valid encounters. Filter test encounters so that they only include data whose start date was May 1, 2019
+
+## Validation data
+
+
+```{r echo = FALSE, message = FALSE}
+# Demographics
+tableone::CreateTableOne(data = process_data(valid_data_method2),
+                         vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
+  tableone::kableone(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE, 
+                     caption = "Demographics")%>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Length of stay
+los_sum(process_data(valid_data_method2)) %>%
+  kable(caption = "Length of stay") %>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Vitals
+vitals_sum(valid_vitals_method2, train_vitals) %>%
+  kable(caption = "Vitals") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Outcomes
+tableone::CreateTableOne(data = valid_encounters_method2, 
+                         vars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL", "gim_to_outcome"), 
+                         factorVars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL")) %>%
+  tableone::kableone(nonnormal = c("gim_to_outcome"), 
+                     showAllLevels = TRUE,
+                     caption = "Outcomes") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Time to outcome
+tte_by_outcome <- valid_encounters_method2 %>%
+  mutate(outcome_type = case_when(OUTCOME_TYPE == 1 ~ "ICU",
+                                  OUTCOME_TYPE == 2 ~ "Death",
+                                  OUTCOME_TYPE == 3 ~ "Palliative",
+                                  OUTCOME_TYPE == 4 ~ "Palliative",
+                                  OUTCOME_TYPE == 5 ~ "Discharge")) %>%
+  filter(outcome_type != "Discharge") %>%
+  select(ENCOUNTER_NUM, gim_to_outcome, outcome_type) 
+tte_by_outcome %>%
+  dplyr::group_by(outcome_type) %>%
+  dplyr::summarize(
+    n = n(),
+    mean_tte = mean(gim_to_outcome),
+    sd_tte = sd(gim_to_outcome),
+    median_tte = median(gim_to_outcome),
+    iqr_tte = IQR(gim_to_outcome)
+  ) %>%
+  dplyr::mutate(
+    `Mean (SD)` = paste0(
+      round(mean_tte, digits = 2), 
+      " (",
+      round(sd_tte, digits = 2), 
+      ")"),
+    `Median (IQR)` = paste0(
+      round(median_tte, digits = 2),
+      " (",
+      round(iqr_tte, digits = 2),
+      ")"),
+    `N (%)` = paste0(
+      n,
+      " (", round(n / nrow(valid_encounters_method2) * 100, digits = 2),
+      "%)"
+    )
+  ) %>%
+  dplyr::select(outcome_type, `N (%)`, `Mean (SD)`, `Median (IQR)`) %>%
+  kable() %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+```
+
+## Test data
+
+```{r echo = FALSE, message = FALSE}
+# Demographics
+tableone::CreateTableOne(data = process_data(test_data_method2),
+                         vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
+  tableone::kableone(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE, 
+                     caption = "Demographics")%>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Length of stay
+los_sum(process_data(test_data_method2)) %>%
+  kable(caption = "Length of stay") %>%
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Vitals
+vitals_sum(test_vitals_method2, train_vitals) %>%
+  kable(caption = "Vitals") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Outcomes
+tableone::CreateTableOne(data = test_encounters_method2 %>% 
+                           mutate(death = if_else(outcome_type_updated == "Death", 1, 0),
+                                  post_gim_icu = if_else(outcome_type_updated == "ICU", 1, 0),
+                                  palliative_transfer = if_else(outcome_type_updated == "Palliative transfer", 1, 0),
+                                  OUTCOME_ALL = if_else(outcome_type_updated %in% c("Death", "ICU", "Palliative transfer"), 1, 0)), 
+                         vars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL", "gim_to_outcome"), 
+                         factorVars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL")) %>%
+  tableone::kableone(nonnormal = c("gim_to_outcome"), 
+                     showAllLevels = TRUE,
+                     caption = "Outcomes") %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+# Time to outcome
+tte_by_outcome <- test_encounters_method2 %>%
+  filter(outcome_type_updated != "Discharge") %>%
+  select(ENCOUNTER_NUM, gim_to_outcome, outcome_type, ADMIT_TS, OUTCOME_TS)  %>%
+  mutate(tte = as.numeric(difftime(ymd_hms(OUTCOME_TS), ymd_hms(ADMIT_TS), unit = "day")))
+tte_by_outcome %>%
+  dplyr::group_by(outcome_type) %>%
+  dplyr::summarize(
+    n = n(),
+    mean_tte = mean(gim_to_outcome),
+    sd_tte = sd(gim_to_outcome),
+    median_tte = median(gim_to_outcome),
+    iqr_tte = IQR(gim_to_outcome)
+  ) %>%
+  dplyr::mutate(
+    `Mean (SD)` = paste0(
+      round(mean_tte, digits = 2), 
+      " (",
+      round(sd_tte, digits = 2), 
+      ")"),
+    `Median (IQR)` = paste0(
+      round(median_tte, digits = 2),
+      " (",
+      round(iqr_tte, digits = 2),
+      ")"
+    ),
+    `N (%)` = paste0(
+      n,
+      " (", round(n / nrow(test_encounters_method2) * 100, digits = 2),
+      "%)"
+    )
+  ) %>%
+  dplyr::select(outcome_type, `N (%)`, `Mean (SD)`, `Median (IQR)`) %>%
+  kable() %>% 
+  kableExtra::collapse_rows() %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+
+```

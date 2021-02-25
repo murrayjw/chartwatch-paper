@@ -22,16 +22,27 @@
 library(CHART)
 library(tidyverse)
 library(lubridate)
+library(chartdb)
 
 
 # connect to the edw ------------------------------------------------------
-con <- connect_edw(keyring::key_get("EDW_USERNAME"),
-                   keyring::key_get("EDW_PASSWORD"))
+options("keyring_backend" = "file",
+        stringsAsFactors = F)
+keyring_unlock(keyring = "database",
+               password = Sys.getenv("R_KEYRING_PASSWORD"))
+
+con <- chartdb::connect_edw(
+  username = keyring::key_get(service = "EDW",
+                              username = "EDW_USERNAME",
+                              keyring = "database"),
+  password = keyring::key_get(service = "EDW",
+                              username = "EDW_PASSWORD",
+                              keyring = "database"))
 
 
 
 # load clinician prediction -----------------------------------------------
-all_predictions <- readr::read_csv('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\practitioner_predictions.csv')
+all_predictions <- readr::read_csv("/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions.csv")
 
 
 # a tibble with every time a prediction was made --------------------------
@@ -79,6 +90,62 @@ get_adt <- function (edw_con, location_or_service = "location") {
 }
 
 
+#' get_location_timeseries
+#' Update function since all patients in this cohort have been discharged at this point
+#'
+#' @param data 
+#' @param location_or_service 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+get_location_timeseries <- function (data, location_or_service = "location") 
+{
+  if (!location_or_service %in% c("location", "service")) {
+    stop("location_or_service must be either location or service")
+  }
+  still_admitted <- data %>% group_by(ENCOUNTER_NUM) %>% summarize(discharged = max(EVENT_TYPE_CD == 
+                                                                                      "DISCHARGE"))
+  data <- data %>% left_join(still_admitted, by = "ENCOUNTER_NUM")
+  dishcarged <- data %>% filter(discharged == 1)
+  not_discharged = data %>% filter(discharged == 0)
+  if (location_or_service == "location") {
+    dishcarged <- dishcarged %>% group_by(ENCOUNTER_NUM) %>% 
+      mutate(lag_unit = lag(UNIT_DESCR), lag_time = lag(EVENT_TS)) %>% 
+      select(ENCOUNTER_NUM, EVENT_TYPE_CD, EVENT_TS, FROM_UNIT, 
+             FROM_SERVICE, UNIT_DESCR, UNIT, lag_unit, lag_time) %>% 
+      mutate(time_spent = as.numeric(difftime(EVENT_TS, 
+                                              lag_time, units = "days"))) %>% select(ENCOUNTER_NUM, 
+                                                                                     from_time = lag_time, to_time = EVENT_TS, unit = lag_unit, 
+                                                                                     time_spent) %>% filter(!is.na(unit)) %>% group_by(ENCOUNTER_NUM) %>% 
+      mutate(unit_seq = seq_id(unit)) %>% group_by(ENCOUNTER_NUM, 
+                                                   unit_seq) %>% summarize(unit = max(unit), start_time = min(from_time), 
+                                                                           end_time = max(to_time), los = sum(time_spent)) %>% 
+      ungroup()
+    
+    results <- dishcarged
+  }
+  else {
+    dishcarged <- dishcarged %>% group_by(ENCOUNTER_NUM) %>% 
+      mutate(lag_service = lag(SERVICE), lag_time = lag(EVENT_TS)) %>% 
+      select(ENCOUNTER_NUM, EVENT_TYPE_CD, EVENT_TS, FROM_UNIT, 
+             FROM_SERVICE, UNIT_DESCR, UNIT, lag_service, 
+             lag_time) %>% mutate(time_spent = as.numeric(difftime(EVENT_TS, 
+                                                                   lag_time, units = "days"))) %>% select(ENCOUNTER_NUM, 
+                                                                                                          from_time = lag_time, to_time = EVENT_TS, service = lag_service, 
+                                                                                                          time_spent) %>% filter(!is.na(service)) %>% group_by(ENCOUNTER_NUM) %>% 
+      mutate(unit_seq = seq_id(service)) %>% group_by(ENCOUNTER_NUM, 
+                                                      unit_seq) %>% summarize(service = max(service), start_time = min(from_time), 
+                                                                              end_time = max(to_time), los = sum(time_spent)) %>% 
+      ungroup()
+    
+    results <- dishcarged
+  }
+  return(results)
+}
+
+
 # extract patient adt for encounters in study -----------------------------
 adt <- get_adt(con)
 adt <- adt %>% 
@@ -92,7 +159,7 @@ encounters <- distinct_prediction_times %>%
 
 # get inpatient data ------------------------------------------------------
 inp <- dim_tbl(con, "INPATIENT_ENCOUNTER_FACT") %>% 
-  select(ENCOUNTER_NUM, DISCHARGE_TS, ADT_DISCHARGE_DISPOSITION_DK)
+  select(ENCOUNTER_NUM, ADMIT_TS, DISCHARGE_TS, ADT_DISCHARGE_DISPOSITION_DK)
 
 disp <- dim_tbl(con, "DISCHARGE_DISPOSITION_DIM") %>% 
   select(DISCHARGE_DISPOSITION_DK, DISCHARGE_DISPOSITION_CD,
@@ -155,7 +222,7 @@ for(i in 1:nrow(distinct_prediction_times)) {
   
   # create outcome values for this prediction time
   
-
+  
   # death -------------------------------------------------------------------
   death <- tmp_inp$death
   
@@ -165,17 +232,17 @@ for(i in 1:nrow(distinct_prediction_times)) {
     death_ts <- NA_Date_
   }
   
-
+  
   # icu transfer ------------------------------------------------------------
   icu <- ifelse(nrow(icu_ts) > 0, 1, 0)
-
+  
   if(icu> 0) {
     icu_ts <- min(icu_ts$start_time)
   } else {
     icu_ts <- NA_Date_
   }
   
-
+  
   # palliative care ---------------------------------------------------------
   pal <- ifelse(nrow(pal_outcome) > 0 | nrow(pal_ts) > 0, 1, 0)
   
@@ -227,13 +294,127 @@ for(i in 1:nrow(distinct_prediction_times)) {
 
 outcome_data <- do.call(rbind, outcome_data)
 
-all_predictions <- all_predictions %>% 
+all_predictions <- all_predictions %>%
   inner_join(outcome_data, by = c("timestamp", "ENCOUNTER_NUM"))
 
 
-all_predictions <- all_predictions %>% 
+all_predictions <- all_predictions %>%
   mutate(outcome48 = ifelse(outcome == 1 &
                               as.numeric(difftime(OUTCOME_TS, timestamp, units = "hours")) <= 48, 1, 0))
 
-readr::write_csv(all_predictions, 'Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\practitioner_predictions_outcomes.csv')
 
+readr::write_csv(all_predictions, '/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv')
+
+
+# Get correct time to outcome ---------------------------------------------
+
+# To compute time to outcome, need to retrieve GIM_START_TS
+data_folder <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/prediction_frames/"
+
+all_encounters <- list()
+i <- 1
+for (input_folder in list.files(data_folder, full.names = TRUE)) {
+  if (dir.exists(input_folder)) {
+    encounters <- read.csv(file.path(input_folder, "gim_encounters.csv"), stringsAsFactors = FALSE)
+    all_encounters[[i]] <- encounters
+    i <- i + 1
+  }
+}
+
+service_start_ts <- do.call(rbind, all_encounters) %>%
+  select(ENCOUNTER_NUM, GIM_START_TS, service, SERVICE_START_TS) %>%
+  unique() %>%
+  mutate(GIM_START_TS = ymd_hms(GIM_START_TS))
+
+outcome_events <- all_predictions %>%
+  filter(OUTCOME_TYPE  != 4) %>%
+  select(ENCOUNTER_NUM, OUTCOME_TS, OUTCOME_TYPE) %>%
+  unique()
+
+
+inp %>% 
+  filter(ENCOUNTER_NUM %in% all_predictions$ENCOUNTER_NUM) %>% 
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>%
+  left_join(service_start_ts, by = "ENCOUNTER_NUM") %>%
+  
+  # Get first time patient is on GIM
+  group_by(ENCOUNTER_NUM) %>%
+  arrange(GIM_START_TS) %>%
+  slice(1) %>%
+  ungroup() %>%
+  
+  # Limit to 1 outcome/encounter
+  left_join(outcome_events, by = "ENCOUNTER_NUM") %>%
+  group_by(ENCOUNTER_NUM) %>%
+  arrange(OUTCOME_TS) %>%
+  slice(1) %>%
+  ungroup() %>%
+  mutate(gim_to_outcome = difftime(OUTCOME_TS, GIM_START_TS, unit = "days")) %>% 
+  group_by(OUTCOME_TYPE) %>%
+  summarize(mean(gim_to_outcome, na.rm = TRUE),
+            median(gim_to_outcome, na.rm = TRUE))
+
+
+
+inp %>% 
+  filter(ENCOUNTER_NUM %in% all_predictions$ENCOUNTER_NUM) %>% 
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>% 
+  left_join(outcome_events, by = "ENCOUNTER_NUM") %>%
+  group_by(ENCOUNTER_NUM) %>%
+  arrange(OUTCOME_TS) %>%
+  slice(1) %>%
+  ungroup() %>%
+  mutate(gim_to_outcome = difftime(OUTCOME_TS, ADMIT_TS, unit = "days")) %>% 
+  group_by(OUTCOME_TYPE) %>%
+  summarize(mean(time_to_outcome),
+            median(time_to_outcome))
+
+# Figure out when prediction happens in pt timeline
+
+adt_service_ts_predictions <- all_predictions %>% 
+  select(ENCOUNTER_NUM, timestamp) %>%
+  mutate(ENCOUNTER_NUM = as.character(ENCOUNTER_NUM)) %>%
+  right_join(adt_service_ts, by = "ENCOUNTER_NUM") %>%
+  filter(timestamp >= start_time & timestamp <= end_time) %>%
+  select(ENCOUNTER_NUM, start_time, end_time) %>%
+  unique() %>%
+  mutate(prediction = 1)
+
+# Use firt GIM start ts as outcome
+adt_service_ts %>%
+  left_join(adt_service_ts_predictions, by = c("ENCOUNTER_NUM", "start_time", "end_time")) %>%
+  replace(is.na(.), 0) %>%
+  filter(prediction == 1) %>%
+  group_by(ENCOUNTER_NUM) %>%
+  summarize(
+    gim_start_ts = min(start_time),
+    service = service[1]
+  ) %>%
+  ungroup() %>%
+  
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>%
+  left_join(outcome_events, by = "ENCOUNTER_NUM") %>%
+  group_by(ENCOUNTER_NUM) %>%
+  arrange(OUTCOME_TS) %>%
+  slice(1) %>%
+  ungroup() %>%
+  
+  
+  # Remove encounters outside of prospective test set
+  filter(gim_start_ts >= as.Date("2019-05-01") & OUTCOME_TS <= as.Date("2019-10-01")) %>%
+  mutate(gim_to_outcome = difftime(OUTCOME_TS, gim_start_ts, unit = "days")) %>% 
+  
+  
+  group_by(OUTCOME_TYPE) %>%
+  summarize(mean(gim_to_outcome, na.rm = TRUE),
+            median(gim_to_outcome, na.rm = TRUE), n = n())
+
+
+
+# Get all outcomes --------------------------------------------------------
+
+events <- chartwatch::get_outcome_events(con, encounter_vector = unique(all_predictions$ENCOUNTER_NUM))
+missing_events <- events %>% 
+  filter(EVENT_TS >= as.Date("2019-05-01") & EVENT_TS <= as.Date("2020-01-01")) %>% 
+  mutate(ENCOUNTER_NUM = as.double(ENCOUNTER_NUM)) %>% 
+  left_join(outcome_events, by = c("ENCOUNTER_NUM", "EVENT_TS" = "OUTCOME_TS")) %>% filter(is.na(OUTCOME_TYPE))

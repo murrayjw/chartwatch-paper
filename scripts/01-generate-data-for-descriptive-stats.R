@@ -59,7 +59,8 @@ inp <- inp %>%
 # Find all data files
 # From calculate-descriptive-statistics.R
 fs <- list.files('/mnt/research/LKS-CHART/Projects/gim_ews_project/data/retraining_2020_0120/train', full.names = T)
-test_encounters <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/test_encounters_with_outcomes.csv", stringsAsFactors = FALSE) 
+test_encounters <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/test_encounters_with_outcomes.csv", 
+                            stringsAsFactors = FALSE) 
 
 
 # Load encounters 
@@ -121,39 +122,12 @@ write.csv(test_encounters_data_method2,
 
 
 
-
-
-
-
-
-
-#prediction_outcomes <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv')
-#load("/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/model_predictions.Rda")
-
-#test_encounter_nums <- prediction_outcomes %>% 
-#  distinct(ENCOUNTER_NUM)
-
-
-
-
-
-#write.csv(valid_encounters_updated,
-#          "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_encounters_updated.csv")
-
-# Update all of the other data files related to the validation data
-
 # Update validation data files --------------------------------------------
 
 valid_demographics <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_demographics.csv")
 valid_numeric_ts <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_numeric_timeseries.csv")
 valid_outcome_ts <- read.csv("/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_outcome_timeseries.csv")
 
-# valid_demographics_updated <- valid_demographics %>%
-#   filter(!ENCOUNTER_NUM %in% test_encounters$ENCOUNTER_NUM)
-# valid_numeric_ts_updated <- valid_numeric_ts  %>%
-#   filter(!ENCOUNTER_NUM %in% test_encounters$ENCOUNTER_NUM)
-# valid_outcome_ts_updated <- valid_outcome_ts  %>%
-#   filter(!ENCOUNTER_NUM %in% test_encounters$ENCOUNTER_NUM)
 
 valid_demographics_method1 <- valid_demographics %>%
   filter(ENCOUNTER_NUM %in% valid_encounters_data_method1$ENCOUNTER_NUM)
@@ -179,22 +153,6 @@ write.csv(valid_numeric_ts_method2,
           "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_numeric_timeseries_method2.csv")
 write.csv(valid_outcome_ts_method2,
           "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_outcome_timeseries_method2.csv")
-
-
-
-
-
-# Save the datasets used for descriptive statistics
-#train_encounters_data <- inp %>% filter(ENCOUNTER_NUM %in% train_encounters$ENCOUNTER_NUM)
-#valid_encounters_data_updated <- inp %>% filter(ENCOUNTER_NUM %in% valid_encounters_updated$ENCOUNTER_NUM)
-#test_encoutners_data <- inp %>% filter(ENCOUNTER_NUM %in% test_encounters$ENCOUNTER_NUM)
-# 
-# write.csv(train_encounters_data,
-#           "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/train_encounters_data.csv")
-# write.csv(valid_encounters_data_updated,
-#           "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_encounters_data_updated.csv")
-# write.csv(test_encoutners_data,
-#           "//mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/test_encounters_data.csv")
 
 
 # Update vitals data ------------------------------------------------------
@@ -293,7 +251,7 @@ test_encounters <- test_encounters %>%
   
   mutate(outcome_type_updated = dplyr::if_else(outcome_type != "Discharge" &
                                      # Follow up for 1 month
-                                     as.Date(OUTCOME_TS) >= as.Date("2019-10-31"), "Discharge", outcome_type)) %>% filter(outcome_type != outcome_type_updated)
+                                     as.Date(OUTCOME_TS) >= as.Date("2019-10-31"), "Discharge", outcome_type)) 
 
 
 test_encounters_method1 <- test_encounters %>%
@@ -305,25 +263,6 @@ test_encounters_method2 <- test_encounters %>%
 write.csv(test_encounters_method2,
           "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/test_encounters_with_outcomes_method2.csv")
 
-
-# Load test data
-# prediction_outcomes <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv')
-# load("/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/model_predictions.Rda")
-# 
-# test_encounter_nums <- prediction_outcomes %>% 
-#   distinct(ENCOUNTER_NUM)
-# outcomes_per_encounter <- prediction_outcomes %>% 
-#   distinct(ENCOUNTER_NUM, OUTCOME_TS, OUTCOME_TYPE) %>% 
-#   mutate(outcome_type = case_when(OUTCOME_TYPE == 1 ~ "ICU",
-#                                   OUTCOME_TYPE == 2 ~ "Death",
-#                                   OUTCOME_TYPE == 3 ~ "Palliative transfer",
-#                                   OUTCOME_TYPE == 4 ~ "Discharge")) %>%
-#   group_by(ENCOUNTER_NUM) %>%
-#   arrange(OUTCOME_TS) %>%
-#   slice(1) %>%
-#   ungroup()
-# 
-# outcomes_per_encounter %>% count(outcome_type)
 
 
 

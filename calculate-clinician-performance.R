@@ -4,8 +4,8 @@
 library(pROC)
 library(tidyverse)
 
-prediction_outcomes <- readr::read_csv('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\practitioner_predictions_outcomes.csv')
-load("Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\model_predictions.Rda")
+prediction_outcomes <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv')
+load("/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/model_predictions.Rda")
 
 phys_enc <- unique(prediction_outcomes$ENCOUNTER_NUM)
 mod_enc <- unique(model_predictions$ENCOUNTER_NUM)
