@@ -159,7 +159,7 @@ pROC::auc(roc_obj)
 
 # Evaluate on prospective test data
 
-test_encounters <- read.csv(ALL_MARS_SCORES_FILENAME,
+test_encounters <- read.csv(PAPER_TEST_ENCOUNTERS_FILENAME,
                             stringsAsFactors = FALSE)
 
 test_mars_scores <-  read.csv(file = ALL_MARS_SCORES_FILENAME,
@@ -185,3 +185,9 @@ pROC::auc(roc_obj)
 
 roc_obj <- pROC::roc(test_pred$outcome_all_72, test_pred$.pred_1)
 pROC::auc(roc_obj)
+
+pROC::auc(test_pred$outcome_all_48, test_pred$mars)
+pROC::auc(test_pred$outcome_all_48, test_pred$mars_pct_change)
+pROC::auc(test_pred$outcome_all_48, test_pred$mars_pct_change_rsum)
+pROC::auc(test_pred$OUTCOME_ALL, test_pred$mars)
+
