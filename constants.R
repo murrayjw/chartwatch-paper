@@ -22,6 +22,7 @@ LAB_RESULTS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/F
 NUMERIC_SOARIAN_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/FULL-RAW-DATA/numeric_soarian.Rda"
 
 
+
 # Final data files, used for descriptive tables ---------------------------
 
 FINAL_DATA_DIR <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/"
@@ -35,3 +36,18 @@ FINAL_PAPER_VALID_ENCOUNTERS_DATA_FILENAME <- file.path(FINAL_DATA_DIR, "paper_v
 
 FINAL_PAPER_TRAIN_VITALS_DATA_FILENAME <- file.path(FINAL_DATA_DIR, "paper_train_vitals_data.csv")
 FINAL_PAPER_VALID_VITALS_DATA_FILENAME <- file.path(FINAL_DATA_DIR, "paper_valid_vitals_data.csv")
+
+FINAL_PAPER_TRAIN_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_train_time_aware_predictions.csv")
+FINAL_PAPER_VALID_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_valid_time_aware_predictions.csv")
+FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_test_time_aware_predictions.csv")
+
+FINAL_PAPER_TRAIN_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR, 
+                                                    "paper_train_all_metrics.csv")
+FINAL_PAPER_VALID_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR,
+                                                    "paper_valid_all_metrics.csv")
+FINAL_PAPER_TEST_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR,
+                                                   "paper_test_all_metrics.csv")
+
+FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv"
+# Generated from get-thresholds.R file
+FINAL_PAPER_ENSEMBLE_THRESHOLD <- 0.17

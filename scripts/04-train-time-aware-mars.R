@@ -16,6 +16,7 @@ library(dplyr)
 library(recipes)
 library(tune)
 library(parsnip)
+library(keyring)
 source("constants.R")
 
 
@@ -127,67 +128,13 @@ pROC::auc(roc_obj)
 roc_obj <- pROC::roc( train_pred$outcome_all_72, train_pred$.pred_1)
 pROC::auc(roc_obj)
 
-# Evaluate on validation data
 
-valid_encounters <- read.csv(PAPER_VALID_ENCOUNTERS_FILENAME, stringsAsFactors = FALSE)
 
-valid_mars_scores <-  read.csv(file = ALL_MARS_SCORES_FILENAME,
-                               stringsAsFactors = FALSE) %>% 
-  # Validation set - encounter nums in valid encounters but NOT in train_encounter_nums
-  # since the training set was actually larger than expected
-  dplyr::filter(ENCOUNTER_NUM %in% valid_encounters$ENCOUNTER_NUM) %>%
-  dplyr::filter(!ENCOUNTER_NUM %in% train_encounter_nums) %>%
-  dplyr::mutate(timestamp = lubridate::ymd_hms(timestamp)) %>%
-  dplyr::rename(mars = score)
-valid_processed_mars_scores <- chartwatch::ensemble_mars_time_process(valid_mars_scores)
-valid_model_data <- valid_processed_mars_scores %>%
-  dplyr::left_join(outcomes, by = c("ENCOUNTER_NUM", "timestamp"))
 
-valid_pred <- predict(gim_model_logistic_final, 
-                      recipes::bake(ensemble_recipe, new_data = valid_model_data),
-                      type = "prob") %>%
-  bind_cols(valid_model_data)
 
-roc_obj <- pROC::roc(valid_pred$outcome_all_48, valid_pred$.pred_1)
-pROC::auc(roc_obj)
+# Save predictions --------------------------------------------------------
 
-roc_obj <- pROC::roc(valid_pred$OUTCOME_ALL, valid_pred$.pred_1)
-pROC::auc(roc_obj)
+write.csv(train_pred, FINAL_PAPER_TRAIN_TIME_AWARE_PREDICTIONS_FILENAME,
+          row.names = FALSE)
 
-roc_obj <- pROC::roc(valid_pred$outcome_all_72, valid_pred$.pred_1)
-pROC::auc(roc_obj)
-
-# Evaluate on prospective test data
-
-test_encounters <- read.csv(PAPER_TEST_ENCOUNTERS_FILENAME,
-                            stringsAsFactors = FALSE)
-
-test_mars_scores <-  read.csv(file = ALL_MARS_SCORES_FILENAME,
-                               stringsAsFactors = FALSE) %>% 
-  dplyr::filter(ENCOUNTER_NUM %in% test_encounters$ENCOUNTER_NUM) %>%
-  dplyr::mutate(timestamp = lubridate::ymd_hms(timestamp)) %>%
-  dplyr::rename(mars = score)
-
-test_processed_mars_scores <- chartwatch::ensemble_mars_time_process(test_mars_scores)
-test_model_data <- test_processed_mars_scores %>%
-  dplyr::left_join(outcomes, by = c("ENCOUNTER_NUM", "timestamp"))
-
-test_pred <- predict(gim_model_logistic_final, 
-                      recipes::bake(ensemble_recipe, new_data = test_model_data),
-                      type = "prob") %>%
-  bind_cols(test_model_data)
-
-roc_obj <- pROC::roc(test_pred$outcome_all_48, test_pred$.pred_1)
-pROC::auc(roc_obj)
-
-roc_obj <- pROC::roc(test_pred$OUTCOME_ALL, test_pred$.pred_1)
-pROC::auc(roc_obj)
-
-roc_obj <- pROC::roc(test_pred$outcome_all_72, test_pred$.pred_1)
-pROC::auc(roc_obj)
-
-pROC::auc(test_pred$outcome_all_48, test_pred$mars)
-pROC::auc(test_pred$outcome_all_48, test_pred$mars_pct_change)
-pROC::auc(test_pred$outcome_all_48, test_pred$mars_pct_change_rsum)
-pROC::auc(test_pred$OUTCOME_ALL, test_pred$mars)
 
