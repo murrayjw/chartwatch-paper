@@ -52,7 +52,7 @@ evaluate_threshold <- function(df, thr) {
   } else {
     auc <- NA
   }
-  f1 <- 2 * ((ppv * sens) / (ppv + sens))
+  f1 <- tp / (tp + (0.5 * (fp + fn)))
   
   
   # Metrics for next 48 hours -----------------------------------------------
@@ -68,7 +68,7 @@ evaluate_threshold <- function(df, thr) {
     auc_48 <- NA
   }
   
-  f1_48 <- 2 * ((ppv_48 * sens_48) / (ppv_48 + sens_48))
+  f1_48 <- tp_48 / (tp_48 + (0.5 * (fp_48 + fn_48)))
   
   return(
     list(
@@ -78,13 +78,15 @@ evaluate_threshold <- function(df, thr) {
       spec = spec,
       accuracy = accuracy,
       auc = auc,
+      f1 = f1,
       
       ppv_48 = ppv_48,
       npv_48 = npv_48,
       sens_48 = sens_48,
       spec_48 = spec_48,
       accuracy_48 = accuracy_48,
-      auc_48 = auc_48
+      auc_48 = auc_48,
+      f1_48 = f1_48
     )
   )
 }
