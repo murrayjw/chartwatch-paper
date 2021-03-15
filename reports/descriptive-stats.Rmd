@@ -28,10 +28,13 @@ valid_vitals_method2 <- read.csv(FINAL_PAPER_VALID_VITALS_DATA_FILENAME, strings
 
 test_data_method2 <- read.csv(file.path(data_folder, "test_encounters_data_method2.csv"), stringsAsFactors = FALSE)
 test_encounter_nums_method2 <- test_data_method2 %>% pull(ENCOUNTER_NUM)
+# Gives dataframe with 1 outcome/encounter
 test_encounters_method2 <- read.csv(file.path(data_folder, "test_encounters_with_outcomes_method2.csv"), stringsAsFactors = FALSE) 
-test_outcomes_method2 <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv') %>%
+# Gives dataframe with potentially multiple outcomes/encounter (e.g., encounter could transfer to ICU and then die)
+test_outcomes_method2 <- readr::read_csv(FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME) %>%
   filter(ENCOUNTER_NUM %in% test_encounter_nums_method2)
 test_vitals_method2 <- read.csv(file.path(data_folder, "test_vitals_data_method2.csv"), stringsAsFactors = FALSE)
+
 
 ```
 
@@ -330,19 +333,24 @@ vitals_sum(test_vitals_method2, train_vitals) %>%
   kableExtra::collapse_rows() %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 
-# Outcomes
-tableone::CreateTableOne(data = test_encounters_method2 %>% 
-                           mutate(death = if_else(outcome_type_updated == "Death", 1, 0),
-                                  post_gim_icu = if_else(outcome_type_updated == "ICU", 1, 0),
-                                  palliative_transfer = if_else(outcome_type_updated == "Palliative transfer", 1, 0),
-                                  OUTCOME_ALL = if_else(outcome_type_updated %in% c("Death", "ICU", "Palliative transfer"), 1, 0)), 
-                         vars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL", "gim_to_outcome"), 
-                         factorVars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL")) %>%
-  tableone::kableone(nonnormal = c("gim_to_outcome"), 
-                     showAllLevels = TRUE,
-                     caption = "Outcomes") %>% 
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+# Outcomes - Compute: 
+#  - % of encounters that experience any outcome
+#  - % of encounters that experience death
+#  - % of encounters that experience ICU
+#  - % of encounters that experience palliative transfer
+encounter_level_outcomes <- test_outcomes_method2 %>%
+  dplyr::group_by(ENCOUNTER_NUM) %>%
+  dplyr:::summarise(
+    outcome = max(outcome),
+    death = max(death),
+    icu = max(icu),
+    palliative = max(pal)
+  ) %>%
+  dplyr::ungroup()
+tableone::CreateTableOne(data = encounter_level_outcomes,
+                         vars = c("outcome", "death", "icu", "palliative"),
+                         factorVars = c("outcome", "death", "icu", "palliative"))
+
 
 # Time to outcome
 tte_by_outcome <- test_encounters_method2 %>%

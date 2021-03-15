@@ -11,53 +11,47 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This document looks at the model performance of the clinician predictions with a comparison against the MARS CHARTwatch model. The CHARTwatch model usually generates predictions 3 times a day, but for a fair comparison of clinician vs model predictions, we only run the CHARTwatch at times when the clincians generated their predictions. 
+This document looks at the model performance of the clinician predictions with a comparison against the time-aware MARS CHARTwatch model. The CHARTwatch model usually generates predictions 3 times a day, but for a fair comparison of clinician vs model predictions, we only run the CHARTwatch at times when the clincians generated their predictions. 
 
 
 ```{r echo=F, message=FALSE, warning=FALSE}
-# load the require libraries ----------------------------------------------
-
-# load the require libraries ----------------------------------------------
+source("constants.R")
 library(pROC)
 library(tidyverse)
 
 # threshold from model retraining to Aprils
 # Where does this threshold come from?
 # Not the same as thresholds from here: https://github.com/LKS-CHART/chartwatch/blob/master/R/constants.R#L4
-threshold <- .0905
+threshold <- FINAL_PAPER_ENSEMBLE_THRESHOLD
+test_encounter_nums <- read.csv(FINAL_PAPER_TEST_ENCOUNTERS_FILENAME,
+                                stringsAsFactors = FALSE) %>%
+  dplyr::pull(ENCOUNTER_NUM)
+all_clinician_predictions <- read.csv(FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME,
+                                      stringsAsFactors = FALSE) %>%
+  dplyr::mutate(professional_group = case_when(grepl("Physician|Pyysician", professional_role) ~ "physician",
+                                               grepl("Resident", professional_role) ~ "resident",
+                                               grepl("Nurse", professional_role) ~ "nurse"))
+clinician_predictions <- all_clinician_predictions %>%
+  dplyr::filter(ENCOUNTER_NUM %in% test_encounter_nums)
 
-prediction_outcomes <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv')
-load("/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/model_predictions.Rda")
-
-phys_enc <- unique(prediction_outcomes$ENCOUNTER_NUM)
-mod_enc <- unique(model_predictions$ENCOUNTER_NUM)
-
-sd <- setdiff(phys_enc, mod_enc)
-
-clinician <- prediction_outcomes %>% 
-  filter(!ENCOUNTER_NUM %in% sd)
-
-clinician <- clinician %>% 
-  mutate(outcome = ifelse(icu+death+pal > 0, 1, 0))
-
-distinct_outcomes <- prediction_outcomes %>% 
-  distinct(ENCOUNTER_NUM, timestamp, OUTCOME, outcome48, OUTCOME_TS)
-
-model <- model_predictions %>% 
-  inner_join(distinct_outcomes, by = c("timestamp", "ENCOUNTER_NUM"))
+model_predictions <- read.csv(FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FILENAME,
+                              stringsAsFactors = FALSE) %>%
+  dplyr::filter(ENCOUNTER_NUM %in% test_encounter_nums)
 
 
-clinician_sum <- clinician %>% 
-  group_by(ENCOUNTER_NUM) %>% 
-  # What do mp and mp48 stand for?
-  summarize(mp = max(ever),
-            mp48 = max(next48),
-            outcome = max(outcome),
-            outcome_48 = max(outcome48)) %>% 
-  ungroup()
 
-model <- model %>% 
-  left_join(clinician_sum, by = c("ENCOUNTER_NUM"))
+
+# clinician_sum <- clinician %>% 
+#   group_by(ENCOUNTER_NUM) %>% 
+#   # What do mp and mp48 stand for?
+#   summarize(mp = max(ever),
+#             mp48 = max(next48),
+#             outcome = max(outcome),
+#             outcome_48 = max(outcome48)) %>% 
+#   ungroup()
+# 
+# model <- model %>% 
+#   left_join(clinician_sum, by = c("ENCOUNTER_NUM"))
 
 
 
@@ -67,15 +61,78 @@ model <- model %>%
 
 ## Descriptive statistics
 
-There were 169 clincians who generated 3,375 predictions on  961 patient encounters between April 30th and August 28th 2019.  The model generated 2,737 predictions for the 961 patient encounters. 
+Initially, there are `r nrow(all_clinician_predictions)` predictions on `r length(unique(all_clinician_predictions$ENCOUNTER_NUM))` visits and `r length(unique(all_clinician_predictions$MRN))` patients, from `r length(unique(all_clinician_predictions$clinicianid))` clinicians. The predictions are done between `r as.Date(min(all_clinician_predictions$timestamp))` and `r as.Date(max(all_clinician_predictions$timestamp))`.
 
-How were model predictions computed? Is it possible to also get 3,375 model predictions?
+```{r, echo = F}
+all_clinician_predictions %>% 
+  dplyr::summarize(
+    start = as.Date(min(timestamp)),
+    end = as.Date(max(timestamp))
+  ) %>%
+  knitr::kable(caption = "Start and end date of prospective test data")
 
-Below is a breakdown of the number of predictions by professional role
+all_clinician_predictions %>%
+  dplyr::summarize(
+    num_predictions = n(),
+    num_clinicians = n_distinct(clinicianid),
+    num_encounters = n_distinct(ENCOUNTER_NUM)
+  ) %>%
+  knitr::kable(caption = "All clinician predictions")
+
+tableone::CreateTableOne(data = all_clinician_predictions,
+                         vars = c("professional_group", "outcome", "outcome48"),
+                         factorVars = c("professional_group", "outcome", "outcome48")) %>%
+  tableone::kableone(caption = "All clinician predictions")
+
+
+```
+
+We then filter predictions to **only include visits that started during the prospective test period**. This results in `r nrow(clinician_predictions)` predictions on `r length(unique(clinician_predictions$ENCOUNTER_NUM))` visits and `r length(unique(clinician_predictions$MRN))` patients, from `r length(unique(clinician_predictions$clinicianid))` clinicians. The predictions are done between `r as.Date(min(clinician_predictions$timestamp))` and `r as.Date(max(clinician_predictions$timestamp))`.
+
+
 
 ```{r, echo=F}
 
-clinician %>% 
+clinician_predictions %>% 
+  dplyr::summarize(
+    start = as.Date(min(timestamp)),
+    end = as.Date(max(timestamp))
+  ) %>%
+  knitr::kable(caption = "Start and end date of prospective test data -- after filtering")
+
+clinician_predictions %>%
+  dplyr::summarize(
+    num_predictions = n(),
+    num_clinicians = n_distinct(clinicianid),
+    num_encounters = n_distinct(ENCOUNTER_NUM)
+  ) %>%
+  knitr::kable(caption = "Clinician predictions after filter applied")
+
+tableone::CreateTableOne(data = clinician_predictions,
+                         vars = c("professional_group", "outcome", "outcome48"),
+                         factorVars = c("professional_group", "outcome", "outcome48")) %>%
+  tableone::kableone(caption = "Clinician predictions after filter applied")
+
+encounter_level_outcomes <- clinician_predictions %>%
+  dplyr::group_by(ENCOUNTER_NUM) %>%
+  summarize(
+    outcome = max(outcome),
+    icu = max(icu),
+    palliative = max(pal),
+    death = max(death)
+  ) %>%
+  dplyr::ungroup() 
+tableone::CreateTableOne(data = encounter_level_outcomes,
+                         vars = c("outcome", "icu", "palliative", "death"),
+                         factorVars = c("outcome", "icu", "palliative", "death")) %>%
+  tableone::kableone(caption = "Outcomes by encounter")
+
+```
+
+Below is a breakdown of the number of predictions by professional role
+
+```{r echo = FALSE}
+clinician_predictions %>% 
   count(professional_role) %>% 
   ggplot(aes(professional_role, n)) +
   geom_bar(stat="identity", fill="steelblue")+
@@ -84,7 +141,6 @@ clinician %>%
   theme_minimal() +
   ggtitle("Number of predictions by professional role")
 ```
-
 
 ```{r echo = FALSE, outcomes}
 prediction_outcomes %>%
@@ -275,7 +331,7 @@ CIs <- binom::binom.confint(x=a$patients_identified, n=a$patients_with_outcome, 
 a <- a %>% bind_cols(CIs)
 a %>% 
   mutate(clinicianid = fct_reorder(as.character(clinicianid), sensitivity)) %>% 
-qplot(x=clinicianid, y=patients_identified/patients_with_outcome, ymin=lower, ymax=upper, data=., ylim=c(0,1), geom = "pointrange") +
+  qplot(x=clinicianid, y=patients_identified/patients_with_outcome, ymin=lower, ymax=upper, data=., ylim=c(0,1), geom = "pointrange") +
   coord_flip()
 
 
@@ -306,11 +362,11 @@ Below is the same plot with a courser grouping of clinicians (physician, residen
 
 a %>%
   mutate(role = case_when(
-   grepl("Physician|Pyysician", role, ignore.case = T) ~ "Physician",
-   grepl("Resident", role, ignore.case = T) ~ "Resident",
-   grepl("Nurse", role, ignore.case = T) ~ "Nurse",
-  TRUE ~ NA_character_
-)) %>% 
+    grepl("Physician|Pyysician", role, ignore.case = T) ~ "Physician",
+    grepl("Resident", role, ignore.case = T) ~ "Resident",
+    grepl("Nurse", role, ignore.case = T) ~ "Nurse",
+    TRUE ~ NA_character_
+  )) %>% 
   group_by(role) %>% 
   summarize(number_clinicians = n_distinct(clinicianid),
             median_sens = median(sensitivity),
@@ -365,11 +421,11 @@ Below is a table of PPV performance by role  (physician, resident, nurse). Resid
 
 b <- b %>%
   mutate(role = case_when(
-   grepl("Physician|Pyysician", role, ignore.case = T) ~ "Physician",
-   grepl("Resident", role, ignore.case = T) ~ "Resident",
-   grepl("Nurse", role, ignore.case = T) ~ "Nurse",
-  TRUE ~ NA_character_
-))
+    grepl("Physician|Pyysician", role, ignore.case = T) ~ "Physician",
+    grepl("Resident", role, ignore.case = T) ~ "Resident",
+    grepl("Nurse", role, ignore.case = T) ~ "Nurse",
+    TRUE ~ NA_character_
+  ))
 
 b %>% 
   group_by(role) %>% 

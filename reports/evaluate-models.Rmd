@@ -1,0 +1,173 @@
+---
+title: "evaluate_models"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo = FALSE}
+source("../constants.R")
+source("../scripts/helper-functions.R")
+library(pROC)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r echo = FALSE}
+test_encounter_nums <- read.csv(FINAL_PAPER_TEST_ENCOUNTERS_FILENAME, 
+                                stringsAsFactors = FALSE) %>%
+  dplyr::pull(ENCOUNTER_NUM)
+train_predictions <- read.csv(FINAL_PAPER_TRAIN_TIME_AWARE_PREDICTIONS_FILENAME, 
+                              stringsAsFactors = FALSE)
+valid_predictions <- read.csv(FINAL_PAPER_VALID_TIME_AWARE_PREDICTIONS_FILENAME,
+                              stringsAsFactors = FALSE)
+test_predictions <- read.csv(FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FILENAME,
+                             stringsAsFactors = FALSE)
+clinician_predictions <- read.csv(FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME,
+                                  stringsAsFactors = FALSE) %>% 
+  dplyr::filter(ENCOUNTER_NUM %in% test_encounter_nums) %>%
+  replace(is.na(.), 0) %>%
+  
+  dplyr::mutate(outcome_all_48 = outcome48,
+                OUTCOME_ALL = outcome) %>%
+  dplyr::mutate(professional_group = case_when(grepl("Physician|Pyysician", professional_role) ~ "physician",
+                                               grepl("Nurse", professional_role) ~ "nurse",
+                                               grepl("Resident", professional_role) ~ "resident")) %>%
+  
+  dplyr::mutate(date = as.Date(date),
+                clinician_timestamp = lubridate::ymd_hms(timestamp))
+
+clinician_predictions_multiple <- clinician_predictions %>%
+  dplyr::group_by(ENCOUNTER_NUM, date) %>%
+  dplyr::summarize(
+    outcome_all_48 = outcome_all_48[1],
+    OUTCOME_ALL = OUTCOME_ALL[1],
+    next48_conf = mean(next48_conf),
+    ever_conf = mean(ever_conf)
+  ) %>%
+  dplyr::ungroup()
+
+```
+
+```{r echo = FALSE}
+all_results <- rbind(
+  evaluate_threshold(train_predictions, thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
+    as.data.frame() %>% 
+    mutate(cohort = "Train data (model)"),
+  evaluate_threshold(valid_predictions, thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
+    as.data.frame() %>% 
+    mutate(cohort = "Validation data (model)"),
+  evaluate_threshold(test_predictions, thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
+    as.data.frame() %>% 
+    mutate(cohort = "Prospective test data"),
+  cbind(
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::mutate(.pred_1 = next48_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(contains("48")),
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::mutate(.pred_1 = ever_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(-contains("48"))) %>%
+    mutate(cohort = "Prospective test data (all clinician predictions)"),
+  cbind(
+    evaluate_threshold(
+      clinician_predictions_multiple %>%
+        dplyr::mutate(.pred_1 = next48_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(contains("48")),
+    evaluate_threshold(
+      clinician_predictions_multiple %>%
+        dplyr::mutate(.pred_1 = ever_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(-contains("48"))) %>%
+    mutate(cohort = "Prospective test data (clinician predictions -- averaged)"),
+  cbind(
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::filter(professional_group == "physician") %>%
+        dplyr::mutate(.pred_1 = next48_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(contains("48")),
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::filter(professional_group == "physician") %>%
+        dplyr::mutate(.pred_1 = ever_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(-contains("48"))) %>%
+    mutate(cohort = "Prospective test data (physician predictions)"),
+  cbind(
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::filter(professional_group == "resident") %>%
+        dplyr::mutate(.pred_1 = next48_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(contains("48")),
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::filter(professional_group == "resident") %>%
+        dplyr::mutate(.pred_1 = ever_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(-contains("48"))) %>%
+    mutate(cohort = "Prospective test data (resident predictions)"),
+  cbind(
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::filter(professional_group == "nurse") %>%
+        dplyr::mutate(.pred_1 = next48_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(contains("48")),
+    evaluate_threshold(
+      clinician_predictions %>%
+        dplyr::filter(professional_group == "nurse") %>%
+        dplyr::mutate(.pred_1 = ever_conf), 
+      thr = 1
+    ) %>%
+      as.data.frame() %>%
+      select(-contains("48"))) %>%
+    mutate(cohort = "Prospective test data (nurse predictions)")
+  
+)
+
+
+
+
+all_results %>%
+  dplyr::select(-contains("_48")) %>%
+  dplyr::mutate_if(is.numeric, function(x) (round(x, digits = 5))) %>%
+  knitr::kable(
+    caption = "Metrics ever"
+  )
+
+all_results %>%
+  dplyr::select(contains("_48"), cohort) %>%
+  dplyr::mutate_if(is.numeric, function(x) (round(x, digits = 5))) %>%
+  knitr::kable(
+    caption = "Metrics in next 48 hrs"
+  )
+```
+```{r echo = FALSE}
+
+```
