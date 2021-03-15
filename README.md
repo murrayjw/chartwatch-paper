@@ -24,3 +24,5 @@ Clinician predictions:
 | outcome   | 1 if visit experiences ICU, death, or palliative transfer at any point in the future - this is the column that should be used |
 | OUTCOME   | 1 if visit experiences ICU or death at any point in the future                                                                |
 | outcome48 | computed from the `outcome` column; 1 if visit experiences ICU, death or palliative transfer at any point in the future       |
+
+HEWS/NEWS predictions: \`\`

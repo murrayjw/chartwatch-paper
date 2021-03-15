@@ -1,4 +1,7 @@
 #load('Z:\\LKS-CHART\\Projects\\gim_ews_preassessment_project\\data\\data-analysis\\hews-news-pred.Rda')
+library(dplyr)
+library(lubridate)
+library(pROC)
 load('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/data-analysis/hews-news-pred.Rda.R')
 
 split_path <- function(x) {
@@ -15,9 +18,9 @@ ap <- readr::read_csv('/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_pr
 
 
 ap <- ap %>% 
-  distinct(ENCOUNTER_NUM, timestamp, death_ever, death_48, icu_ever, icu_48,
-           pal_ever, pal_48, icu_time, death_time, pal_time, outcome_ever,
-           outcome_48)
+  distinct(ENCOUNTER_NUM, timestamp, death, icu, 
+           pal, icu_ts, death_ts, pal_ts, outcome,
+           outcome48)
 
 
 n <- names(all_hews_news)
@@ -37,29 +40,29 @@ all_hews_news <- ap %>% left_join(all_hews_news)
 all_hews_news <- all_hews_news %>% 
   filter(!is.na(NEWS))
 
-roc_obj <- roc(all_hews_news$outcome_ever, all_hews_news$NEWS)
+roc_obj <- roc(all_hews_news$outcome, all_hews_news$NEWS)
 auc(roc_obj)
 
 tab <- table(all_hews_news$NEWS_group %in% c('very high risk',
-                                             'high risk'), all_hews_news$outcome_ever)
+                                             'high risk'), all_hews_news$outcome)
 tab[2,2]/(tab[2,2] + tab[1,2]) # sens
 tab[2,2]/(tab[2,2] + tab[2,1]) # ppv
 
-roc_obj <- roc(all_hews_news$outcome_ever, all_hews_news$HEWS)
+roc_obj <- roc(all_hews_news$outcome, all_hews_news$HEWS)
 auc(roc_obj)
 
 tab <- table(all_hews_news$HEWS_group %in% c('very high risk',
-                                            'high risk'), all_hews_news$outcome_ever)
+                                            'high risk'), all_hews_news$outcome)
 tab[2,2]/(tab[2,2] + tab[1,2]) # sens
 tab[2,2]/(tab[2,2] + tab[2,1]) # ppv
 
 all_hews_news %>% 
   filter(NEWS_group %in% c('very high risk',
-                           'high risk')& outcome_ever == 1) %>% 
-  mutate(outcome_time = if_else(is.na(icu_time), death_time, icu_time)) %>% 
+                           'high risk')& outcome == 1) %>% 
+  mutate(outcome_time = if_else(is.na(icu_ts), death_ts, icu_ts)) %>% 
   mutate(tte = as.numeric(difftime(outcome_time,
                                    timestamp, 
                                    units = 'hours'))) %>% 
-  summarize(med_tte = median(tte)/24,
-            q25 = quantile(tte, .25)/24,
-            q75 = quantile(tte, .75)/24)
+  summarize(med_tte = median(tte, na.rm = T)/24,
+            q25 = quantile(tte, .25, na.rm = T)/24,
+            q75 = quantile(tte, .75, na.rm = T)/24)

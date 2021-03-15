@@ -1,6 +1,7 @@
 library(tidyverse)
 library(lubridate)
 library(glmnet)
+source("./constants.R")
 
 calculate_hews <- function(data) {
   hews_data <- data %>% 
@@ -31,7 +32,7 @@ calculate_hews <- function(data) {
                                       ifelse(HEWS < 9, "high risk",
                                              "very high risk")))) %>% 
     mutate(HEWS_group = factor(HEWS_group, levels = c("low risk", 'moderate risk', "high risk", "very high risk"))) %>% 
-    select(ENCOUNTER_NUM, time_window, HEWS, HEWS_group)
+    select(ENCOUNTER_NUM, timestamp, HEWS, HEWS_group)
   
   
 }
@@ -66,36 +67,79 @@ calculate_news <- function(data) {
                                       ifelse(NEWS < 9, "high risk",
                                              "very high risk")))) %>% 
     mutate(HEWS_group = factor(NEWS_group, levels = c("low risk", 'moderate risk', "high risk", "very high risk"))) %>% 
-    select(ENCOUNTER_NUM,time_window, pulse, systolic_bp, resp_rate, temp, flow_rate, cns, NEWS, NEWS_group)
+    select(ENCOUNTER_NUM,timestamp, pulse, systolic_bp, resp_rate, temp, flow_rate, cns, NEWS, NEWS_group)
   return(news_data)
   
 } 
 
 
-load("/media/ubuntu/cryptscratch2/gim-pre-assessment/numeric_descriptive_statistics.R")
+load(DESCRIPTIVE_STATS_FILE)
 
-nsd <- numeric_descriptive_statistics[names(numeric_timeseries)]
-fs <- '/media/ubuntu/cryptscratch2/gim-pre-assessment'
-dirs <- list.files(fs, full.names = T)
-dirs <- dirs[1:68]
+#nsd <- numeric_descriptive_statistics[names(numeric_timeseries)]
+#fs <- '/media/ubuntu/cryptscratch2/gim-pre-assessment'
+#dirs <- list.files(fs, full.names = T)
+#dirs <- dirs[1:68]
 
+predictions_folder <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/prediction_frames/"
 all_hews_news <- list()
+
+for (date in list.files(predictions_folder)) {
+  folder_name <- file.path(predictions_folder, date)
+  if (dir.exists(folder_name)) {
+    
+    encounters <- readr::read_csv(paste0(folder_name, "/gim_encounters.csv"))
+    
+    time <- lubridate::ymd_hms(unique(encounters$current_time))
+    hews_news_vars <-  readr::read_csv(paste0(folder_name, "/hews_news_vars.csv")) %>%
+      dplyr::mutate(timestamp = lubridate::ymd_hms(timestamp)) %>%
+      dplyr::filter(timestamp <= time) %>%
+      dplyr::group_by(ENCOUNTER_NUM) %>%
+      dplyr::arrange(desc(timestamp)) %>%
+      dplyr::slice(1) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(-timestamp)
+    
+    encounters <- encounters %>% 
+      rowwise() %>% 
+      mutate(start_time = max(GIM_START_TS, ADMIT_TS, na.rm = T)) %>% 
+      ungroup() %>% 
+      mutate(start_time = if_else(start_time > time, time, start_time))
+    
+    vitals_data <- read.csv(file.path(folder_name, "processed_vitals.csv")) %>% 
+      dplyr::mutate(timestamp = lubridate::ymd_hms(timestamp)) %>%
+      dplyr::filter(timestamp <=  time) %>%
+      dplyr::select(ENCOUNTER_NUM, timestamp, vital_spulse, 
+                    vital_sbpsystolic, vital_srespirations,
+                    vital_stemperature, vital_so2saturation) %>%
+      group_by(ENCOUNTER_NUM) %>%
+      arrange(timestamp) %>%
+      # Fill forward
+      tidyr::fill(c("vital_spulse", "vital_sbpsystolic", 
+                    "vital_srespirations", "vital_stemperature", 
+                    "vital_so2saturation")) %>%
+      # Only keep most recent value
+      dplyr::slice(1) %>%
+      dplyr::ungroup() 
+    
+    hews_news <- vitals_data %>%
+      dplyr::left_join(hews_news_vars)
+    
+    hews_data <- calculate_hews(hews_news)
+    news_data <- calculate_news(hews_news)
+    
+    hews_news_data <- hews_data %>% 
+      left_join(news_data)
+  }
+}
 for(i in dirs) {
   
-  encounters <- readr::read_csv(paste0(i, "/encounters.csv"))
-  hews_news_vars <-  readr::read_csv(paste0(i, "/hews_news_vars.csv"))
+  
   numeric_timeseries <- readr::read_csv(paste0(i, "/numeric_timeseries.csv"))
   numeric_timeseries <- numeric_timeseries %>% 
     select(ENCOUNTER_NUM, time_window, vital_spulse, 
            vital_sbpsystolic, vital_srespirations,
            vital_stemperature, vital_so2saturation)
   
-  time <- ymd_hms(unique(encounters$current_time))
-  encounters <- encounters %>% 
-    rowwise() %>% 
-    mutate(start_time = max(GIM_START_TS, ADMIT_TS, na.rm = T)) %>% 
-    ungroup() %>% 
-    mutate(start_time = if_else(start_time > time, time, start_time))
   
   patient_ts <- create_patient_timeseries(encounters, time = time)
   
