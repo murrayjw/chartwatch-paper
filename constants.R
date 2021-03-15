@@ -50,7 +50,8 @@ FINAL_PAPER_VALID_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR,
 FINAL_PAPER_TEST_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR,
                                                    "paper_test_all_metrics.csv")
 
-FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/practitioner_predictions_outcomes.csv"
+FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/paper_test_clinician_predictions.csv"
+FINAL_PAPER_TEST_HEWS_NEWS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/paper_test_hews_news_predictions.csv"
 
 # Generated from get-thresholds.R file
-FINAL_PAPER_ENSEMBLE_THRESHOLD <- 0.17
+FINAL_PAPER_ENSEMBLE_THRESHOLD <- 0.2215
