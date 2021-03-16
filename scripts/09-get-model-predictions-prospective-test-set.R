@@ -45,10 +45,10 @@ for (prediction_date in unique(clinician_predictions$date)) {
   ensemble_predictions <- chartwatch::ensemble_mars_time_predict(ensemble_data,
                                                                  ensemble_recipe,
                                                                  ensemble_model)
-  write.csv(ensemble_predictions,
-            file = file.path(predictions_folder, prediction_date, 
-                             "time_aware_mars_scores_2021_0308.csv"),
-            row.names = FALSE)
+ write.csv(ensemble_predictions,
+           file = file.path(predictions_folder, prediction_date,
+                            "time_aware_mars_scores_2021_0308.csv"),
+          row.names = FALSE)
   chartwatch_predictions <- ensemble_predictions %>%
     dplyr::mutate(timestamp = lubridate::ymd_hms(timestamp)) %>%
     dplyr::filter(ENCOUNTER_NUM %in% predictions_encounters$ENCOUNTER_NUM) %>%
@@ -68,19 +68,18 @@ for (prediction_date in unique(clinician_predictions$date)) {
 
 model_predictions <- do.call(rbind, all_predictions)
 
+unique_outcomes <- clinician_predictions %>%
+  # Use outcomes from clinician dataset
+  dplyr::mutate(outcome_all_48 = outcome48,
+                OUTCOME_ALL = outcome) %>%
+  dplyr::select(ENCOUNTER_NUM, date, outcome_all_48, OUTCOME_ALL)
 
 updated_test_predictions <- model_predictions %>% 
   rename(model_timestamp = timestamp) %>%
-  dplyr::left_join(clinician_predictions, 
+  dplyr::left_join(unique_outcomes, 
                    by = c("ENCOUNTER_NUM", "prediction_date" = "date")) %>%
   
-  # Use outcomes from clinician dataset
-  dplyr::mutate(outcome_all_48 = outcome48,
-                OUTCOME_ALL = OUTCOME,
-                .pred_1 = score) %>%
-  
-  # Only need 1 prediction/model
-  dplyr::select(-professional_role, -clinicianid) %>%
+  dplyr::mutate(.pred_1 = score) %>%
   unique()
 
 write.csv(updated_test_predictions,
