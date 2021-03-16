@@ -42,6 +42,7 @@ FINAL_PAPER_VALID_VITALS_DATA_FILENAME <- file.path(FINAL_DATA_DIR, "paper_valid
 FINAL_PAPER_TRAIN_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_train_time_aware_predictions.csv")
 FINAL_PAPER_VALID_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_valid_time_aware_predictions.csv")
 FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_test_time_aware_predictions.csv")
+FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FULL_FILENAME <- file.path(FINAL_DATA_DIR, "paper_test_time_aware_predictions_full.csv")
 
 FINAL_PAPER_TRAIN_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR, 
                                                     "paper_train_all_metrics.csv")
@@ -53,5 +54,15 @@ FINAL_PAPER_TEST_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR,
 FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/paper_test_clinician_predictions.csv"
 FINAL_PAPER_TEST_HEWS_NEWS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/paper_test_hews_news_predictions.csv"
 
+
+
 # Generated from get-thresholds.R file
-FINAL_PAPER_ENSEMBLE_THRESHOLD <- 0.2215
+FINAL_PAPER_ENSEMBLE_THRESHOLD <- 0.2215 # PPV of 40%
+ENSEMBLE_THRESHOLD_PPV30 <- 0.17 
+
+
+HEWS_CUTOFF_VERY_HIGH_RISK <- 9
+HEWS_CUTOFF_HIGH_RISK <- 6
+HEWS_CUTOFF_MODERATE_RISK <- 3
+NEWS_CUTOFF_HIGH_RISK <- 6
+NEWS_CUTOFF_MODERATE_RISK <- 3
