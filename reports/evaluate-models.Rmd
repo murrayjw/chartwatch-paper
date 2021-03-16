@@ -24,7 +24,20 @@ train_predictions <- read.csv(FINAL_PAPER_TRAIN_TIME_AWARE_PREDICTIONS_FILENAME,
 valid_predictions <- read.csv(FINAL_PAPER_VALID_TIME_AWARE_PREDICTIONS_FILENAME,
                               stringsAsFactors = FALSE)
 test_predictions <- read.csv(FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FILENAME,
-                             stringsAsFactors = FALSE)
+                             stringsAsFactors = FALSE) %>%
+  dplyr::select(ENCOUNTER_NUM, timestamp, OUTCOME_ALL, outcome_all_48, .pred_1) %>% 
+  unique() 
+
+test_encounters <- read.csv(FINAL_PAPER_TEST_ENCOUNTERS_FILENAME,
+                            stringsAsFactors = FALSE)
+hews_news_predictions <- read.csv(FINAL_PAPER_TEST_HEWS_NEWS_FILENAME,
+                                  stringsAsFactors = FALSE) %>%
+  # Add these columns so that we can later use the evaluate_threshold function
+  dplyr::mutate(
+    OUTCOME_ALL = outcome, 
+    outcome_all_48 = outcome48
+  ) 
+
 clinician_predictions <- read.csv(FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME,
                                   stringsAsFactors = FALSE) %>% 
   dplyr::filter(ENCOUNTER_NUM %in% test_encounter_nums) %>%
@@ -51,17 +64,155 @@ clinician_predictions_multiple <- clinician_predictions %>%
 
 ```
 
+# Summary
+
+```{r echo = FALSE}
+dplyr::tibble(
+  "CHARTwatch" = nrow(test_predictions),
+  "HEWS/NEWS" = nrow(hews_news_predictions),
+  "Clinicians" = nrow(clinician_predictions)
+) %>%
+  knitr::kable(
+    caption = "Number of predictions"
+  )
+
+dplyr::tibble(
+  "Unique patients" = length(unique(clinician_predictions$MRN)),
+  "Unique encounters" = length(unique(clinician_predictions$ENCOUNTER_NUM)),
+  "Unique clinicians" = length(unique(clinician_predictions$clinicianid))
+) %>%
+  knitr::kable(
+    caption = "Clinician predictions"
+  )
+```
+
+# HEWS and NEWS
+
+There is missingness as some features are not available at time of prediction.
+
+```{r echo = FALSE}
+
+tableone::CreateTableOne(data = hews_news_predictions,
+                         vars = c("HEWS", "NEWS"),
+                         factorVars = c("HEWS", "NEWS"), 
+                         includeNA = TRUE) %>%
+  tableone::kableone()
+
+hews_news_predictions %>%
+  dplyr::count(HEWS) %>%
+  dplyr::mutate( pct = paste0(100 * round(n / sum(n), digits = 4), "%")) %>%
+  dplyr::mutate(is_numeric = as.factor(if_else(is.na(HEWS), 1, 0))) %>%
+  dplyr::mutate( HEWS = as.factor(HEWS)) %>%
+  ggplot(aes(x = HEWS, y = n, label = pct, fill = is_numeric)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label= pct), vjust=-0.3, size=3.5) + 
+  scale_fill_manual(values = c("grey", "coral")) +
+  theme(legend.position = "none") +
+  
+  geom_vline(aes(xintercept = HEWS_CUTOFF_MODERATE_RISK + 0.5), size = 2) + 
+  geom_text(aes(x=HEWS_CUTOFF_MODERATE_RISK + 0.7, label = "MODERATE RISK", y = 405, family = "sans", fontface = "plain", hjust = "top"), colour="black", angle=-90, size = 4) + 
+  
+  geom_vline(aes(xintercept = HEWS_CUTOFF_HIGH_RISK + 0.5), size = 2) +
+  geom_text(aes(x=HEWS_CUTOFF_HIGH_RISK + 0.7, label = "HIGH RISK", y=500, family = "sans", fontface = "plain", hjust = "top"), colour="black", angle=-90, size = 4) + 
+  
+  geom_vline(aes(xintercept = HEWS_CUTOFF_VERY_HIGH_RISK + 0.5), size = 2) +
+  geom_text(aes(x=HEWS_CUTOFF_VERY_HIGH_RISK + 0.7, label = "VERY HIGH RISK", y=410, family = "sans", fontface = "plain", hjust = "top"), colour="black", angle=-90, size = 3.5) + 
+  
+  ggtitle("HEWS scores")
+
+hews_news_predictions %>%
+  dplyr::count(NEWS) %>%
+  dplyr::mutate( pct = paste0(100 * round(n / sum(n), digits = 4), "%")) %>%
+  dplyr::mutate(is_numeric = as.factor(if_else(is.na(NEWS), 1, 0))) %>%
+  dplyr::mutate( NEWS = as.factor(NEWS)) %>%
+  ggplot(aes(x = NEWS, y = n, label = pct, fill = is_numeric)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label= pct), vjust=-0.3, size=3.5) + 
+  scale_fill_manual(values = c("grey", "coral")) +
+  theme(legend.position = "none") +
+  
+  geom_vline(aes(xintercept = NEWS_CUTOFF_MODERATE_RISK + 0.5), size = 2) + 
+  geom_text(aes(x=NEWS_CUTOFF_MODERATE_RISK + 0.7, label = "MODERATE RISK", y = 410, family = "sans", fontface = "plain", hjust = "top"), colour="black", angle=-90, size = 3.5) + 
+  
+  geom_vline(aes(xintercept = NEWS_CUTOFF_HIGH_RISK + 0.5), size = 2) +
+  geom_text(aes(x=NEWS_CUTOFF_HIGH_RISK + 0.7, label = "HIGH RISK", y=480, family = "sans", fontface = "plain", hjust = "top"), colour="black", angle=-90, size = 3.5) + 
+  
+  
+  ggtitle("NEWS scores")
+
+
+```
+
+```{r echo = FALSE}
+# After computing summary stats on HEWS/NEWS, set NA values to 0
+hews_news_predictions <- hews_news_predictions  %>%
+  replace(is.na(.), 0)
+```
+
+# Results
 ```{r echo = FALSE}
 all_results <- rbind(
+  
+  # CHARTwatch results
   evaluate_threshold(train_predictions, thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
     as.data.frame() %>% 
-    mutate(cohort = "Train data (model)"),
+    mutate(cohort = "Train data (CHARTwatch)"),
   evaluate_threshold(valid_predictions, thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
     as.data.frame() %>% 
-    mutate(cohort = "Validation data (model)"),
+    mutate(cohort = "Validation data (CHARTwatch)"),
   evaluate_threshold(test_predictions, thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
     as.data.frame() %>% 
-    mutate(cohort = "Prospective test data"),
+    mutate(cohort = "Prospective test data (CHARTwatch)"),
+  
+  # CHARTwatch results - w cutoff that gives PPV of 30%
+  evaluate_threshold(train_predictions, thr = ENSEMBLE_THRESHOLD_PPV30) %>%
+    as.data.frame() %>% 
+    mutate(cohort = "Train data (CHARTwatch - 30% PPV cutoff)"),
+  evaluate_threshold(valid_predictions, thr = ENSEMBLE_THRESHOLD_PPV30) %>%
+    as.data.frame() %>% 
+    mutate(cohort = "Validation data (CHARTwatch - 30% PPV cutoff)"),
+  evaluate_threshold(test_predictions, thr = ENSEMBLE_THRESHOLD_PPV30) %>%
+    as.data.frame() %>% 
+    mutate(cohort = "Prospective test data (CHARTwatch - 30% PPV cutoff)"),
+  
+  
+  # NEWS
+  evaluate_threshold(hews_news_predictions %>% dplyr::mutate(.pred_1 = NEWS), 
+                     thr = NEWS_CUTOFF_HIGH_RISK) %>%
+    as.data.frame() %>% 
+    dplyr::mutate(cohort = paste0(
+      "NEWS (high risk cutoff: ", NEWS_CUTOFF_HIGH_RISK, ")")
+    ),
+  
+  evaluate_threshold(hews_news_predictions %>% dplyr::mutate(.pred_1 = NEWS), 
+                     thr = NEWS_CUTOFF_MODERATE_RISK) %>%
+    as.data.frame() %>% 
+    dplyr::mutate(cohort = paste0(
+      "NEWS (moderate risk cutoff: ", NEWS_CUTOFF_MODERATE_RISK, ")")
+    ),
+  
+  
+  # HEWS
+  evaluate_threshold(hews_news_predictions %>% dplyr::mutate(.pred_1 = HEWS), 
+                     thr = HEWS_CUTOFF_VERY_HIGH_RISK) %>%
+    as.data.frame() %>% 
+    dplyr::mutate(cohort = paste0(
+      "HEWS (very high risk cutoff: ", HEWS_CUTOFF_VERY_HIGH_RISK, ")")
+    ),
+  evaluate_threshold(hews_news_predictions %>% dplyr::mutate(.pred_1 = HEWS), 
+                     thr = HEWS_CUTOFF_HIGH_RISK) %>%
+    as.data.frame() %>% 
+    dplyr::mutate(cohort = paste0(
+      "HEWS (high risk cutoff: ", HEWS_CUTOFF_HIGH_RISK, ")")
+    ),
+  evaluate_threshold(hews_news_predictions %>% dplyr::mutate(.pred_1 = HEWS), 
+                     thr = HEWS_CUTOFF_MODERATE_RISK) %>%
+    as.data.frame() %>% 
+    dplyr::mutate(cohort = paste0(
+      "HEWS (moderate risk cutoff: ", HEWS_CUTOFF_MODERATE_RISK, ")")
+    ),
+  
+  # Clinician results
   cbind(
     evaluate_threshold(
       clinician_predictions %>%
@@ -145,29 +296,252 @@ all_results <- rbind(
         dplyr::mutate(.pred_1 = ever_conf), 
       thr = 1
     ) %>%
+      
       as.data.frame() %>%
       select(-contains("48"))) %>%
     mutate(cohort = "Prospective test data (nurse predictions)")
   
 )
 
-
-
-
 all_results %>%
   dplyr::select(-contains("_48")) %>%
   dplyr::mutate_if(is.numeric, function(x) (round(x, digits = 5))) %>%
+  dplyr::select(
+    auc, f1, sens, spec, ppv, npv, accuracy, cohort
+  ) %>%
   knitr::kable(
     caption = "Metrics ever"
-  )
+  ) 
 
 all_results %>%
   dplyr::select(contains("_48"), cohort) %>%
   dplyr::mutate_if(is.numeric, function(x) (round(x, digits = 5))) %>%
+  dplyr::select(
+    auc_48, f1_48, sens_48, spec_48, ppv_48, npv_48, accuracy_48, cohort
+  )  %>%
   knitr::kable(
     caption = "Metrics in next 48 hrs"
   )
 ```
+
+# HEWS and NEWS static models
+
+"The highest, complete HEWS within a 24-hour window was calculated for all patients at time of admission to the ward"
+
 ```{r echo = FALSE}
 
+earliest_hews_news <- hews_news_predictions %>%
+  dplyr::group_by(ENCOUNTER_NUM) %>%
+  arrange(as.Date(date)) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(test_encounters, by = "ENCOUNTER_NUM") %>%
+  dplyr::mutate(admit_date = as.Date(ADMIT_TS)) %>%
+  dplyr::mutate(time_since_admit = as.numeric(difftime(date, admit_date, unit = "days"))) %>%
+  dplyr::mutate(available_hews_news_24hrs = if_else(time_since_admit <= 1, 1, 0),
+                available_hews_news_48hrs = if_else(time_since_admit <= 2, 1, 0)) 
+
+tableone::CreateTableOne(data = earliest_hews_news,
+                         vars = c("available_hews_news_24hrs", "available_hews_news_48hrs"),
+                         factorVars = c("available_hews_news_24hrs", "available_hews_news_48hrs"),
+                         includeNA = TRUE) %>%
+  tableone::kableone()
+
+rbind(
+  # HEWS models
+  evaluate_threshold(earliest_hews_news  %>% dplyr::mutate(.pred_1 = HEWS),
+                     thr = HEWS_CUTOFF_VERY_HIGH_RISK) %>%
+    as.data.frame() %>%
+    dplyr::select(-contains("48")) %>%
+    dplyr::mutate(cohort = "HEWS static (very high risk)"),
+  
+  evaluate_threshold(earliest_hews_news  %>% dplyr::mutate(.pred_1 = HEWS),
+                     thr = HEWS_CUTOFF_HIGH_RISK) %>%
+    as.data.frame() %>%
+    dplyr::select(-contains("48")) %>%
+    dplyr::mutate(cohort = "HEWS static (high risk)"),
+  evaluate_threshold(earliest_hews_news  %>% dplyr::mutate(.pred_1 = HEWS),
+                     thr = HEWS_CUTOFF_MODERATE_RISK) %>%
+    as.data.frame() %>%
+    dplyr::select(-contains("48")) %>%
+    dplyr::mutate(cohort = "HEWS static (moderate risk)"),
+  
+  
+  # NEWS
+  evaluate_threshold(earliest_hews_news  %>% dplyr::mutate(.pred_1 = NEWS),
+                     thr = NEWS_CUTOFF_HIGH_RISK) %>%
+    as.data.frame() %>%
+    dplyr::select(-contains("48")) %>%
+    dplyr::mutate(cohort = "NEWS static (high risk)"),
+  evaluate_threshold(earliest_hews_news  %>% dplyr::mutate(.pred_1 = NEWS),
+                     thr = NEWS_CUTOFF_MODERATE_RISK) %>%
+    as.data.frame() %>%
+    dplyr::select(-contains("48")) %>%
+    dplyr::mutate(cohort = "NEWS static (moderate risk)")
+  
+) %>%
+   dplyr::select(
+    cohort, auc, f1, sens, spec, ppv, npv, accuracy
+  ) %>%
+  knitr::kable()
 ```
+
+# Clinician predictions
+```{r echo = FALSE}
+tableone::CreateTableOne(data = clinician_predictions,
+                         vars = c("professional_group")) %>%
+  tableone::kableone()
+
+clinician_predictions %>% 
+  dplyr::group_by(professional_group, clinicianid) %>%
+  dplyr::summarise(n =n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(professional_group) %>%
+  dplyr::summarize(total = n(), 
+                   mean_predictions = mean(n),
+                   sd_predictions = sd(n),
+                   median_predictions = median(n),
+                   iqr_predictions = IQR(n)) %>%
+  knitr::kable()
+```
+
+```{r echo = FALSE}
+all_clinician_results <- list()
+i <- 1
+for (c in unique(clinician_predictions$clinicianid)) {
+  pred <- clinician_predictions %>%
+    dplyr::filter(clinicianid == c)
+  all_clinician_results[[i]] <- evaluate_threshold(pred %>%
+                       dplyr::mutate(.pred_1 = ever_conf), thr = 1) %>%
+    as_tibble() %>%
+    dplyr::select(-contains("48")) %>%
+    dplyr::mutate(
+      clinician_id = c,
+      professional_group = pred$professional_group[[1]],
+      n_pred = nrow(pred),
+      n_patients = length(unique(pred$MRN)),
+      n_encounters = length(unique(pred$ENCOUNTER_NUM))
+    )
+  i <- i + 1
+}
+all_clinician_prediction_metrics <- do.call(rbind, all_clinician_results)
+
+all_clinician_prediction_metrics %>%
+  count(`Professional Group` = professional_group, `# of predictions` = n_pred) %>% 
+  ggplot(aes(x = `# of predictions`, y = n, fill = `Professional Group`)) + 
+  geom_bar(stat = "identity", position = position_dodge()) + 
+  ggtitle("# predictions/clinician")
+
+all_clinician_prediction_metrics %>%
+  dplyr::mutate(auc = as.numeric(auc)) %>%
+  tidyr::pivot_longer(cols = c("npv", "accuracy", "auc", "sens", "spec", "f1"), names_to = "metric", values_to = "value") %>%
+  ggplot(aes(y = value, x = metric, fill = professional_group)) + geom_boxplot()
+
+all_clinician_prediction_metrics %>%
+  dplyr::mutate(auc = as.numeric(auc)) %>%
+  tidyr::pivot_longer(cols = c("npv", "accuracy", "auc", "sens", "spec", "f1"), names_to = "metric", values_to = "value") %>%
+  ggplot(aes(y = value, x = metric)) + geom_boxplot()
+
+all_clinician_prediction_metrics %>%
+  dplyr::mutate(auc = as.numeric(auc)) %>%
+  tidyr::pivot_longer(cols = c("ppv", "sens"), names_to = "metric", values_to = "value") %>%
+  ggplot(aes(y = value, x = metric, fill = professional_group)) + geom_boxplot()
+
+all_clinician_prediction_metrics %>%
+  dplyr::mutate(auc = as.numeric(auc)) %>%
+  tidyr::pivot_longer(cols = c("ppv", "sens"), names_to = "metric", values_to = "value") %>%
+  ggplot(aes(y = value, x = metric)) + geom_boxplot()
+  
+```
+
+# Positive predictive value, speciticity and sensitivity 
+
+```{r echo = FALSE}
+
+tableone::CreateTableOne(data  = all_clinician_prediction_metrics,
+                         vars = c("ppv", "sens", "spec"), includeNA  = TRUE) %>%
+  tableone::kableone()
+tableone::CreateTableOne(data  = all_clinician_prediction_metrics,
+                         vars = c("ppv", "sens", "spec"), 
+                         factorVars = c("ppv", "sens", "spec") , includeNA = TRUE) %>%
+  tableone::kableone()
+
+hist(all_clinician_prediction_metrics$ppv)
+
+all_clinician_prediction_metrics %>%
+  count(ppv, professional_group) %>%
+  ggplot(aes(x = ppv, y = n, fill = professional_group)) + 
+  geom_bar(stat = "identity", position = position_dodge()) + 
+  ylim(c(NA, 45))
+
+hist(all_clinician_prediction_metrics$sens)
+
+all_clinician_prediction_metrics %>%
+  count(sens, professional_group) %>%
+  ggplot(aes(x = sens, y = n, fill = professional_group)) + 
+  geom_bar(stat = "identity", position = position_dodge()) + 
+  ylim(c(NA, 35))
+
+hist(all_clinician_prediction_metrics$spec)
+
+all_clinician_prediction_metrics %>%
+  count(spec, professional_group) %>%
+  ggplot(aes(x = spec, y = n, fill = professional_group)) + 
+  geom_bar(stat = "identity", position = position_dodge()) + 
+  ylim(c(NA, 10))
+```
+
+# Comparing models
+
+## CHARTwatch vs HEWS vs NEWS vs clinicians
+
+Purple: CHARTwatch
+Blue: NEWS
+Yellow: HEWS
+
+```{r echo = FALSE}
+model_roc_ever <- pROC::roc(test_predictions$OUTCOME_ALL, test_predictions$.pred_1)
+model_roc_ever_results <- dplyr::tibble(
+  sens = model_roc_ever$sensitivities,
+  spec = model_roc_ever$specificities
+)
+
+model_roc_ever_results <- list()
+i <- 1
+for (thr in seq(0.001, 0.999, 0.001)) {
+  model_roc_ever_results[[i]] <- evaluate_threshold(test_predictions, thr = thr) %>%
+    as.data.frame() %>%
+    dplyr::select(sens, spec)
+  i <- i + 1
+}
+all_model_roc_ever_results <- do.call(rbind, model_roc_ever_results)
+
+all_clinician_prediction_metrics %>%
+  ggplot(aes(x = 1- spec, y = sens)) + 
+  geom_point(aes(color = professional_group, size = n_pred), alpha = 0.7) +
+  geom_line(data =all_model_roc_ever_results, aes(x = 1-  spec, y = sens)) +
+   annotate("point", x = 1 - 0.96256, y = 0.28205, color = "purple", size = 5) 
+
+all_clinician_prediction_metrics %>%
+  ggplot(aes(x = 1- spec, y = sens)) + 
+  geom_point(aes(size = n_pred), alpha = 0.7) +
+    geom_line(data =all_model_roc_ever_results, aes(x = 1-  spec, y = sens)) +
+  annotate("point", x = 1 - 0.96256, y = 0.28205, color = "purple", size = 5) 
+
+all_clinician_prediction_metrics %>%
+  ggplot(aes(x = 1- spec, y = sens)) + 
+  geom_point(aes(size = n_pred), alpha = 0.7) +
+  # CHARTwatch
+  annotate("point", x = 1 - 0.96256, y = 0.28205, color = "purple", size = 5) +
+  
+  # HEWS
+  annotate("point", x = 1 - 0.98893, y = 0.01818, color = "orange", size = 3) +
+  
+  # NEWS
+  annotate("point", x = 1 - 0.95941, y = 0.03636, color = "blue", size = 3) 
+
+```
+
+## What if we used ALL CHARTwatch predictions?
+
+In the previous section, we limit to only 1 CHARTwatch prediction made at the same time the clinician makes their prediction. However, CHARTwatch is always running....
