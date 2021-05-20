@@ -1,0 +1,263 @@
+---
+title: "CHARTwatch Development and Validation"
+date: "Last Updated: `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+---
+
+
+This document contains the analysis tables for the [CHARTwatch development and validation manuscript](https://docs.google.com/document/d/193F-GiEhY3JrB_Z7AjRohuYGoERIWTGogc9kblBGeEE/edit)
+
+```{r setup, include=FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../constants.R")
+source("../scripts/helper-functions.R")
+library(dplyr)
+library(lubridate)
+library(knitr)
+```
+
+# Clarification Questions
+
+1. Was there a gap used before the outcome when training the model? 
+
+**No.** I double-checked the train data and this is how we set up the outcome:
+- Create the 6-hour timeline for each patient.
+- The outcome column is defined as the following: if the patient experiences the outcome in the next 48 hours, the value is set to 1, otherwise it's 0.
+
+The Kaiser paper (_Kipnis et al, 2016_) used a similar approach: 
+
+> In this hourly dataset, the outcome variable had a value of 1 if a patient experienced the outcome within 12 h of the current time point rather than only at the single time point of the event (Appendix Fig. A.1). Therefore, the outcome variable was set to 1 for at most 12 rows prior to the actual event. This was done so that not only the information at the time of the event was used to predict outcomes, but also information about the pattern of variables in the 12 h prior to the event.
+
+2. Is step-up unit used as an outcome during training?
+
+**Yes.**
+
+In the training data, 913 of the 1,457 ICU events are actually step-up events. 214 of these later transfer to the ICU.
+
+When creating the patient timeseries, the data gets censored at the first outcome. During evaluation, how should we handle the encounters that have multiple outcomes (e.g., if an encounter has ICU and then death, how do we account for this when evaluating the _death only_ outcome?)
+
+3. Is step-up included as an outcome in clinician predictions?
+
+**No.** None of the encounters that were predicted on had a step-up unit transfer
+
+This is how ICU outcomes are determined:
+- If the service is an ICU service, this is counted as an ICU transfer.
+- The location could technically be a step-up unit, but this doesn't appear in the cohort...
+
+
+```{r echo = FALSE, eval = FALSE}
+train_data <- readRDS(FINAL_PAPER_TRAIN_MODEL_DATA_FILENAME)
+train_data %>%
+  group_by(ENCOUNTER_NUM) %>%
+  summarize(OUTCOME_TS = OUTCOME_TS[1],
+            latest_ts = max(timestamp),
+            OUTCOME = OUTCOME_ALL[1])
+
+icu_events <- train_data %>%
+  filter(OUTCOME_TYPE == 1) %>%
+  group_by(ENCOUNTER_NUM) %>%
+  slice(1) %>%
+  ungroup() %>%
+  select(ENCOUNTER_NUM, OUTCOME_TS)
+icu_events_clinician <- clinician_predictions %>%
+  filter(OUTCOME_TYPE == 1) %>%
+  group_by(ENCOUNTER_NUM) %>%
+  slice(1) %>%
+  ungroup()
+
+options("keyring_backend" = "file",
+        stringsAsFactors = F)
+keyring_unlock(keyring = "database",
+               password = Sys.getenv("R_KEYRING_PASSWORD"))
+
+con_edw <- chartdb::connect_edw(
+  username = keyring::key_get(service = "EDW",
+                              username = "EDW_USERNAME",
+                              keyring = "database"),
+  password = keyring::key_get(service = "EDW",
+                              username = "EDW_PASSWORD",
+                              keyring = "database"))
+
+adt <- chartwatch::get_patient_adt(con_edw) %>%
+  filter(ENCOUNTER_NUM %in% icu_events$ENCOUNTER_NUM) 
+adt_clinician <- chartwatch::get_patient_adt(con_edw) %>%
+  filter(ENCOUNTER_NUM %in% icu_events_clinician$ENCOUNTER_NUM) 
+odbc::dbDisconnect(con_edw)
+
+# How many of these are step-up vs ICU?
+adt %>%
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>%
+  left_join(icu_events, by = "ENCOUNTER_NUM") %>%
+  filter(ymd_hms(EVENT_TS) == ymd_hms(OUTCOME_TS)) %>%
+  mutate(step_up = if_else(grepl("STEP UP", UNIT_DESCR), 1, 0)) %>%
+  count(step_up)
+
+
+# Where do most of the ICU patients go?
+adt %>%
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>%
+  left_join(icu_events, by = "ENCOUNTER_NUM") %>%
+  filter(ymd_hms(EVENT_TS) == ymd_hms(OUTCOME_TS)) %>%
+  count(UNIT_DESCR)
+
+# How many step-up eventually become ICU?
+step_up <- adt %>%
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>%
+  left_join(icu_events, by = "ENCOUNTER_NUM") %>%
+  filter(ymd_hms(EVENT_TS) == ymd_hms(OUTCOME_TS)) %>%
+  mutate(step_up = if_else(grepl("STEP UP", UNIT_DESCR), 1, 0)) %>%
+  filter(step_up == 1) %>%
+  select(ENCOUNTER_NUM, STEP_UP_TS = OUTCOME_TS)
+adt %>%
+  filter(ENCOUNTER_NUM %in% step_up$ENCOUNTER_NUM) %>%
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>%
+  left_join(step_up, by = "ENCOUNTER_NUM") %>%
+  filter(ymd_hms(EVENT_TS) >= ymd_hms(STEP_UP_TS)) %>%
+  filter(grepl("INTENSIVE", SERVICE)) %>%
+  filter(!grepl("STEP UP", UNIT_DESCR)) %>%
+  group_by(ENCOUNTER_NUM) %>%
+  slice(1) %>%
+  ungroup()
+
+# Check how many clinician ICU transfers are step-up
+adt_clinician %>%
+  mutate(ENCOUNTER_NUM = as.numeric(ENCOUNTER_NUM)) %>%
+  left_join(icu_events_clinician, by = "ENCOUNTER_NUM") %>%
+  filter(ymd_hms(EVENT_TS) == ymd_hms(OUTCOME_TS)) %>%
+  mutate(step_up = if_else(grepl("STEP UP", UNIT_DESCR), 1, 0)) %>%
+  count(step_up)
+```
+
+# Clinician predictions
+
+Breakdown of different clinician predictions:
+
+```{r clinician_load_data, echo = FALSE, message = FALSE}
+
+clinician_predictions <- read.csv(FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME,
+                                  stringsAsFactors = FALSE)  %>%
+  select(clinicianid, timestamp, ENCOUNTER_NUM, patientid, MRN, ever, professional_role) %>%
+  mutate(timestamp = ymd_hms(timestamp))
+chartwatch_predictions <- read.csv(FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_ALL_FILENAME, 
+                                   stringsAsFactors = FALSE) %>%
+  select(ENCOUNTER_NUM, model_ts = timestamp, clinician_prediction, score) %>%
+  mutate(model_ts = ymd_hms(model_ts))
+test_outcomes <- read.csv(FINAL_PAPER_TEST_OUTCOMES_FILENAME,
+                          stringsAsFactors = FALSE)
+
+physician_predictions <- clinician_predictions %>%
+  filter(grepl("Phyiscian|Pyysician|Resident", professional_role))
+staff_predictions <- clinician_predictions %>%
+  filter(grepl("Physician|Pyysician", professional_role))
+resident_predictions <- clinician_predictions %>%
+  filter(grepl("Resident", professional_role))
+nurse_predictions <- clinician_predictions %>%
+  filter(grepl("Nurse", professional_role))
+
+tableone::CreateTableOne(
+  data = clinician_predictions %>%
+  mutate(professional_group = case_when(
+    grepl("Physician|Pyysician", professional_role) ~ "Staff physician",
+    grepl("Resident", professional_role) ~ "Resident",
+    grepl("Nurse", professional_role) ~ "Nurse"
+  )),
+  vars = c("professional_group")
+) %>%
+  tableone::kableone()
+
+```
+```{r echo = FALSE}
+
+N_ITERATIONS <- 100
+get_results <- function(clinician_df, group_name, primary_outcome) {
+  results <-  get_metrics(df = clinician_df,
+                          model_df = chartwatch_predictions,
+                          outcomes = test_outcomes,
+                          iterations = N_ITERATIONS,
+                          primary_outcome = primary_outcome)
+  
+  cbind(
+    list("group" = group_name),
+    results$data, 
+    results$clinician_metrics %>% select(contains("mean"), -contains("tte")))
+}
+get_all_results <- function(primary_outcome) {
+  rbind(
+    get_results(clinician_predictions, group_name = "All clinician predictions", primary_outcome = primary_outcome),
+    get_results(physician_predictions, group_name = "Physicians (All)", primary_outcome = primary_outcome),
+    get_results(staff_predictions, group_name = "Physicians (Staff)", primary_outcome = primary_outcome),
+    get_results(resident_predictions, group_name = "Physicians (Residents)", primary_outcome = primary_outcome),
+    get_results(nurse_predictions, group_name = "Physicians (Nurses)", primary_outcome = primary_outcome)
+  ) 
+}
+```
+
+For the results below, I sampled 1 clinician prediction/encounter. This was done `r N_ITERATIONS` times and the metrics are averaged.
+
+## Outcome: ICU or Death
+
+```{r echo = FALSE, message = FALSE}
+res <- get_all_results(primary_outcome = c("Death", "Death outside ward", "ICU"))
+
+res %>%
+  select(group, contains("#"), contains("%")) %>%
+  kable() 
+
+res %>%
+  select(-contains("#"), -contains("%")) %>%
+  kable()
+```
+
+## Outcome: ICU
+
+```{r echo = FALSE, message = FALSE}
+res <- get_all_results(primary_outcome = c("ICU")) 
+
+res %>%
+  select(group, contains("#"), contains("%")) %>%
+  kable() 
+
+res %>%
+  select(-contains("#"), -contains("%")) %>%
+  kable()
+```
+
+## Outcome: Death
+
+```{r echo = FALSE, message = FALSE}
+res <- get_all_results(primary_outcome = c("Death", "Death outside ward")) 
+
+res %>%
+  select(group, contains("#"), contains("%")) %>%
+  kable() 
+
+res %>%
+  select(-contains("#"), -contains("%")) %>%
+  kable()
+```
+
+## Outcome: Death or ICU or Palliative
+
+```{r echo = FALSE, message = FALSE}
+res <- get_all_results(primary_outcome = c("Death", "Death outside ward", "ICU", "Palliative")) 
+
+res %>%
+  select(group, contains("#"), contains("%")) %>%
+  kable() 
+
+res %>%
+  select(-contains("#"), -contains("%")) %>%
+  kable()
+```
+
+## Questions
+
+
+- **How to compare CHARTwatch?** For fairness, we should only use prediction at the same time as clinician prediction. However, I am sampling multiple times (i.e., `r N_ITERATIONS` times) and I am looking at different clinician results (physicians, staff, residents, nurses)
+
+
+

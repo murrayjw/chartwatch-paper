@@ -30,13 +30,27 @@ calculate_hews <- function(data) {
                            ifelse(vital_so2saturation <= 92, 1, 0)),
            flow_rate = flow_rate,
            cns = ifelse(cam == 1, 2, alc)) %>% 
-    mutate(HEWS = pulse + systolic_bp + resp_rate + temp + flow_rate + cns,
+    dplyr::mutate_at(dplyr::vars(c("pulse", 
+                                   "systolic_bp", 
+                                   "resp_rate", 
+                                   "temp", 
+                                   "o2_sat", 
+                                   "flow_rate", 
+                                   "cns")),  
+                     list(measured = ~dplyr::if_else(is.na(.), 0, 1))) %>%
+    replace(is.na(.), 0) %>%
+    mutate(HEWS_measured_vars = pulse_measured + systolic_bp_measured +
+             resp_rate_measured + temp_measured +
+             o2_sat_measured + flow_rate_measured +
+             cns_measured,
+           HEWS = pulse + systolic_bp + resp_rate + temp + flow_rate + cns,
            HEWS_group = ifelse(HEWS <3, "low risk",
                                ifelse(HEWS <6, "moderate risk",
                                       ifelse(HEWS < 9, "high risk",
                                              "very high risk")))) %>% 
-    mutate(HEWS_group = factor(HEWS_group, levels = c("low risk", 'moderate risk', "high risk", "very high risk"))) %>% 
-    select(ENCOUNTER_NUM, timestamp, HEWS, HEWS_group)
+    mutate(HEWS_group = factor(HEWS_group, 
+                               levels = c("low risk", 'moderate risk', "high risk", "very high risk"))) %>% 
+    select(ENCOUNTER_NUM, timestamp, HEWS, HEWS_group, HEWS_measured_vars)
   
   
 }
@@ -65,13 +79,25 @@ calculate_news <- function(data) {
                                   ifelse(vital_so2saturation <= 95, 1, 0))),
            flow_rate = ifelse(flow_rate == 2, 0, 1),
            cns = ifelse(cam == 2 | alc != 1, 0, 3)) %>% 
+    dplyr::mutate_at(dplyr::vars(c("pulse", 
+                                   "systolic_bp", 
+                                   "resp_rate", 
+                                   "temp", 
+                                   "flow_rate", 
+                                   "cns")),  
+                     list(measured = ~dplyr::if_else(is.na(.), 0, 1))) %>%
+    replace(is.na(.), 0) %>%
     mutate(NEWS = pulse + systolic_bp + resp_rate + temp + flow_rate + cns,
            NEWS_group = ifelse(NEWS <3, "low risk",
                                ifelse(NEWS <6, "moderate risk",
                                       ifelse(NEWS < 9, "high risk",
-                                             "very high risk")))) %>% 
+                                             "very high risk"))),
+           NEWS_measured_vars = pulse_measured + systolic_bp_measured + 
+             resp_rate_measured + temp_measured + flow_rate_measured +
+             cns_measured
+             ) %>% 
     mutate(HEWS_group = factor(NEWS_group, levels = c("low risk", 'moderate risk', "high risk", "very high risk"))) %>% 
-    select(ENCOUNTER_NUM,timestamp, pulse, systolic_bp, resp_rate, temp, flow_rate, cns, NEWS, NEWS_group)
+    select(ENCOUNTER_NUM,timestamp, NEWS, NEWS_group, NEWS_measured_vars)
   return(news_data)
   
 } 
@@ -141,8 +167,8 @@ for (date in list.files(predictions_folder)) {
     
     # Save HEWS/NEWS predictions
     write.csv(hews_news_data,
-              file = file.path(folder_name, "hews_news_predictions_2021_0312.csv"),
-              row.names = FALSE)
+             file = file.path(folder_name, "hews_news_predictions_2021_0401.csv"),
+             row.names = FALSE)
     all_hews_news[[i]] <- hews_news_data
     i <- i + 1
     
@@ -175,8 +201,8 @@ write.csv(hews_news_outcomes,
 
 hews_outcomes <- hews_news_outcomes %>%
   dplyr::mutate(.pred_1 = HEWS,
-         OUTCOME_ALL = outcome,
-         outcome_all_48 = outcome48)
+                OUTCOME_ALL = outcome,
+                outcome_all_48 = outcome48)
 
 news_outcomes <- hews_news_outcomes %>%
   mutate(.pred_1 = NEWS,
@@ -223,7 +249,19 @@ evaluate_threshold(news_outcomes, thr = 9) %>%
 
 test_encounters <- read.csv(FINAL_PAPER_TEST_ENCOUNTERS_FILENAME,
                             stringsAsFactors = FALSE)
-test_date <- read.csv()
+
+hews_news_outcomes  %>%
+  count(HEWS)
+hews_news_outcomes %>%
+  count(NEWS)
+
+hews_news_outcomes %>%
+  filter(!is.na(HEWS)) %>%
+  nrow()
+
+hews_news_outcomes %>%
+  filter(!is.na(NEWS)) %>%
+  nrow()
 
 hews_news_outcomes %>%
   dplyr::filter(is.na(HEWS)) %>%

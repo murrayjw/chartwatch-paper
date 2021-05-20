@@ -1,4 +1,5 @@
 LOS_CUTOFF <- 30
+CUTOFF_DATE <- as.Date("2019-08-30") + lubridate::ddays(30)
 
 DESCRIPTIVE_STATS_FILE <- "/mnt/research/DSAA_Deployment/chartwatch_project/model_objects/numeric_descriptive_statistics.R" 
 TRANSFORMATIONS_FILE <- "/mnt/research/DSAA_Deployment/chartwatch_project/model_objects/numeric_variable_names.csv"
@@ -6,8 +7,8 @@ TRANSFORMATIONS_FILE <- "/mnt/research/DSAA_Deployment/chartwatch_project/model_
 ALL_MARS_SCORES_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/all_mars_scores_2021_0222.csv"
 
 PAPER_TRAIN_ENCOUNTERS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/train_encounters.csv"
-PAPER_VALID_ENCOUNTERS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_encounters_method2.csv"
-PAPER_TEST_ENCOUNTERS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/test_encounters_with_outcomes_method2.csv"
+PAPER_VALID_ENCOUNTERS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_encounters_method1.csv"
+PAPER_TEST_ENCOUNTERS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/test_encounters_with_outcomes_method1.csv"
 
 MODEL_TRAINING_DATA_FOLDER <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/retraining_2020_0120/train/"
 FINAL_MODEL_TRAINING_DATA_FOLDER <- "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/model_data_train/"
@@ -43,6 +44,7 @@ FINAL_PAPER_TRAIN_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "
 FINAL_PAPER_VALID_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_valid_time_aware_predictions.csv")
 FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FILENAME <- file.path(FINAL_DATA_DIR, "paper_test_time_aware_predictions.csv")
 FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_FULL_FILENAME <- file.path(FINAL_DATA_DIR, "paper_test_time_aware_predictions_full.csv")
+FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_ALL_FILENAME <- file.path(FINAL_DATA_DIR, "paper_test_time_aware_predictions_all.csv")
 
 FINAL_PAPER_TRAIN_ALL_METRICS_FILENAME <- file.path(FINAL_DATA_DIR, 
                                                     "paper_train_all_metrics.csv")
@@ -55,10 +57,16 @@ FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME <- "/mnt/research/LKS-CHART/Proj
 FINAL_PAPER_TEST_HEWS_NEWS_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/paper_test_hews_news_predictions.csv"
 
 
+FINAL_PAPER_TRAIN_MODEL_DATA_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/modeling_data/train_data.Rds"
+FINAL_PAPER_VALID_MODEL_DATA_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/modeling_data/heldout_data.Rds"
+
+FINAL_PAPER_TEST_OUTCOMES_FILENAME <- "/mnt/research/LKS-CHART/Projects/gim_ews_preassessment_project/data/paper_test_outcomes.csv"
+
 
 # Generated from get-thresholds.R file
 FINAL_PAPER_ENSEMBLE_THRESHOLD <- 0.2215 # PPV of 40%
 ENSEMBLE_THRESHOLD_PPV30 <- 0.17 
+ENSEMBLE_THRESHOLD_PPV40 <- 0.2215
 
 
 HEWS_CUTOFF_VERY_HIGH_RISK <- 9

@@ -18,6 +18,7 @@
 library(chartwatch)
 library(dplyr)
 source("constants.R")
+source("scripts/helper-functions.R")
 
 ensemble_recipe <- readRDS(ENSEMBLE_MARS_RECIPE_FILENAME)
 ensemble_model <- readRDS(ENSEMBLE_MARS_MODEL_FILENAME)
@@ -47,7 +48,7 @@ for (prediction_date in unique(clinician_predictions$date)) {
                                                                  ensemble_model)
  write.csv(ensemble_predictions,
            file = file.path(predictions_folder, prediction_date,
-                            "time_aware_mars_scores_2021_0308.csv"),
+                            "time_aware_mars_scores_2021_0401.csv"),
           row.names = FALSE)
   chartwatch_predictions <- ensemble_predictions %>%
     dplyr::mutate(timestamp = lubridate::ymd_hms(timestamp)) %>%
@@ -72,7 +73,7 @@ unique_outcomes <- clinician_predictions %>%
   # Use outcomes from clinician dataset
   dplyr::mutate(outcome_all_48 = outcome48,
                 OUTCOME_ALL = outcome) %>%
-  dplyr::select(ENCOUNTER_NUM, date, outcome_all_48, OUTCOME_ALL)
+  dplyr::select(ENCOUNTER_NUM, date, outcome_all_48, OUTCOME_ALL, timestamp)
 
 updated_test_predictions <- model_predictions %>% 
   rename(model_timestamp = timestamp) %>%

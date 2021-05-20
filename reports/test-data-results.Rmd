@@ -1,0 +1,481 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../constants.R")
+source("../scripts/helper-functions.R")
+library(dplyr)
+library(pROC)
+library(lubridate)
+library(knitr)
+```
+
+Evaluate test set results
+
+```{r echo = FALSE}
+chartwatch_predictions <- read.csv(FINAL_PAPER_TEST_TIME_AWARE_PREDICTIONS_ALL_FILENAME, 
+                                   stringsAsFactors = FALSE)
+clinician_predictions <- read.csv(FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME,
+                                  stringsAsFactors = FALSE) %>%
+  mutate(date = as.Date(date))
+
+pROC::roc(chartwatch_predictions$outcome_48, chartwatch_predictions$score)
+pROC::roc(chartwatch_predictions$outcome, chartwatch_predictions$score)
+```
+
+
+All test predictions
+
+```{r echo = FALSE}
+
+evaluate_threshold(chartwatch_predictions %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome_48), thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
+  as.data.frame() %>%
+  kable()
+
+```
+All test predictions but with 30PPV thr
+```{r echo = FALSE}
+
+evaluate_threshold(chartwatch_predictions %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome_48), thr = ENSEMBLE_THRESHOLD_PPV30) %>%
+  as.data.frame() %>%
+  kable()
+
+```
+Daily predictions (limit to 1 prediction/day generated at same time as clinician prediction)
+
+```{r echo = FALSE}
+chartwatch_predictions_daily <- chartwatch_predictions %>%
+  mutate(prediction_time = if_else(hour(timestamp) <= 15,
+                                   as.Date(timestamp) + dhours(15),
+                                   as.Date(timestamp) + ddays(1) + dhours(15))) %>%
+  group_by(ENCOUNTER_NUM, prediction_time) %>%
+  arrange(desc(timestamp)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  mutate(date = as.Date(timestamp)) %>%
+  left_join(
+    clinician_predictions %>% select(ENCOUNTER_NUM, date, outcome48, outcome_clin = outcome) %>% mutate(clinician = 1) %>% unique()
+  )
+
+evaluate_threshold(chartwatch_predictions_daily %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome_48), thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
+  as.data.frame() %>%
+  kable()
+```
+
+Same as above but with 30 PPV threshold
+
+```{r echo = FALSE}
+evaluate_threshold(chartwatch_predictions_daily %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome_48), thr = ENSEMBLE_THRESHOLD_PPV30) %>%
+  as.data.frame() %>%
+  kable()
+```
+
+Results on test data, limited to data that clinicians have also predicted on
+
+All predictions
+
+```{r echo = FALSE}
+evaluate_threshold(chartwatch_predictions_daily %>%
+                     filter(clinician == 1) %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome_48), thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
+  as.data.frame() %>%
+  kable()
+```
+
+30 ppv threshold
+```{r echo = FALSE}
+evaluate_threshold(chartwatch_predictions_daily %>%
+                     filter(clinician == 1) %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome_48), thr = ENSEMBLE_THRESHOLD_PPV30) %>%
+  as.data.frame() %>%
+  kable()
+```
+
+Daily predictions
+```{r echo = FALSE}
+evaluate_threshold(chartwatch_predictions_daily %>%
+                     filter(clinician == 1) %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome48), thr = FINAL_PAPER_ENSEMBLE_THRESHOLD) %>%
+  as.data.frame() %>%
+  kable()
+```
+
+Using 30PPV thr
+```{r echo = FALSE}
+evaluate_threshold(chartwatch_predictions_daily %>%
+                     filter(clinician == 1) %>%
+                     dplyr::mutate(.pred_1 = score,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome48), thr = ENSEMBLE_THRESHOLD_PPV30) %>%
+  as.data.frame() %>%
+  kable()
+```
+
+Clinician predictions, consider all clinicians as one model (overpowered)
+Use outcomes defined in clinician dataframe
+
+```{r echo = FALSE}
+evaluate_threshold(clinician_predictions %>%
+                     dplyr::mutate(.pred_1 = ever,
+                                   OUTCOME_ALL =outcome, 
+                                   outcome_all_48 =outcome48), thr = 1) %>%
+  as.data.frame() %>%
+  kable()
+```
+Clinician predictions, consider all clinicians as one model (overpowered)
+But use outcomes defined in chartwatch dataframe (this has been adjusted to account for outcomes that occur after 
+end of study --> these should not be considered outcomes) This will only affect the encounter-level outcome
+
+```{r echo  = FALSE, message = FALSE}
+############## Use same outcomes
+chartwatch_outcomes <- chartwatch_predictions_daily %>%
+  select(ENCOUNTER_NUM, date, outcome, outcome_48, EVENT_TYPE_UPDATED)
+
+clinician_predictions %>%
+  select(-outcome) %>%
+  left_join(chartwatch_outcomes, by = c("ENCOUNTER_NUM", "date")) %>%
+  dplyr::mutate(.pred_1 = ever,
+                OUTCOME_ALL =outcome, 
+                outcome_all_48 =outcome_48) %>%
+  evaluate_threshold(thr = 1) %>% 
+  as.data.frame()
+```
+
+Averaged clinician metrics
+
+```{r echo = FALSE}
+
+all_clinician_results <- list()
+i <- 1
+for (c in unique(clinician_predictions$clinicianid)) {
+  pred <- clinician_predictions %>%
+    dplyr::filter(clinicianid == c) %>%
+    select(-outcome) %>%
+    left_join(chartwatch_outcomes, by = c("ENCOUNTER_NUM", "date")) 
+  all_clinician_results[[i]] <- pred %>%
+    dplyr::mutate(.pred_1 = ever,
+                  OUTCOME_ALL =outcome, 
+                  outcome_all_48 =outcome_48) %>%
+    evaluate_threshold(thr = 1) %>%
+    as_tibble() %>%
+    dplyr::select(-contains("48")) %>%
+    dplyr::mutate(
+      clinician_id = c,
+      professional_group = pred$professional_role[[1]],
+      n_pred = nrow(pred),
+      n_patients = length(unique(pred$MRN)),
+      n_encounters = length(unique(pred$ENCOUNTER_NUM))
+    )
+  i <- i + 1
+}
+all_clinician_prediction_metrics <- do.call(rbind, all_clinician_results)
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(ppv, na.rm = TRUE),
+    median = median(ppv, na.rm = TRUE),
+    sd = sd(ppv, na.rm = TRUE),
+    iqr = IQR(ppv, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(sens, na.rm = TRUE),
+    median = median(sens, na.rm = TRUE),
+    sd = sd(sens, na.rm = TRUE),
+    iqr = IQR(sens, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity")
+
+all_clinician_prediction_metrics %>%
+  filter(grepl("Physician|Pyysician", professional_group)) %>%
+  summarize(
+    mean = mean(ppv, na.rm = TRUE),
+    median = median(ppv, na.rm = TRUE),
+    sd = sd(ppv, na.rm = TRUE),
+    iqr = IQR(ppv, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV - physician")
+
+all_clinician_prediction_metrics %>%
+  filter(grepl("Physician|Pyysician", professional_group)) %>%
+  summarize(
+    mean = mean(sens, na.rm = TRUE),
+    median = median(sens, na.rm = TRUE),
+    sd = sd(sens, na.rm = TRUE),
+    iqr = IQR(sens, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity - physician")
+
+all_clinician_prediction_metrics %>%
+  filter(grepl("Resident", professional_group)) %>%
+  summarize(
+    mean = mean(ppv, na.rm = TRUE),
+    median = median(ppv, na.rm = TRUE),
+    sd = sd(ppv, na.rm = TRUE),
+    iqr = IQR(ppv, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV - resident")
+
+all_clinician_prediction_metrics %>%
+  filter(grepl("Resident", professional_group)) %>%
+  summarize(
+    mean = mean(sens, na.rm = TRUE),
+    median = median(sens, na.rm = TRUE),
+    sd = sd(sens, na.rm = TRUE),
+    iqr = IQR(sens, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity - resident")
+
+all_clinician_prediction_metrics %>%
+  filter(grepl("Nurse", professional_group)) %>%
+  summarize(
+    mean = mean(ppv, na.rm = TRUE),
+    median = median(ppv, na.rm = TRUE),
+    sd = sd(ppv, na.rm = TRUE),
+    iqr = IQR(ppv, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV - Nurse")
+
+all_clinician_prediction_metrics %>%
+  filter(grepl("Nurse", professional_group)) %>%
+  summarize(
+    mean = mean(sens, na.rm = TRUE),
+    median = median(sens, na.rm = TRUE),
+    sd = sd(sens, na.rm = TRUE),
+    iqr = IQR(sens, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens, w = n_pred, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity - Nurse")
+```
+
+Daily chartwatch predictions by outcome
+
+```{r echo = FALSE}
+chartwatch_predictions_daily %>%
+  filter(clinician == 1) %>%
+  mutate(outcome = if_else(grepl("death", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+  dplyr::mutate(.pred_1 = score,
+                OUTCOME_ALL =outcome, 
+                outcome_all_48 =outcome_48) %>%
+  evaluate_threshold( thr = FINAL_PAPER_ENSEMBLE_THRESHOLD)  %>%
+  as.data.frame() %>%
+  select(-contains("_48")) %>%
+  kable(caption = "death")
+
+chartwatch_predictions %>%
+  mutate(outcome = if_else(grepl("icu", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+  dplyr::mutate(.pred_1 = score,
+                OUTCOME_ALL =outcome, 
+                outcome_all_48 =outcome_48) %>%
+  evaluate_threshold( thr = FINAL_PAPER_ENSEMBLE_THRESHOLD)  %>%
+  as.data.frame() %>%
+  select(-contains("_48")) %>%
+  kable(caption = "ICU")
+
+chartwatch_predictions_daily %>%
+  filter(clinician == 1) %>%
+  mutate(outcome = if_else(grepl("palliative", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+  dplyr::mutate(.pred_1 = score,
+                OUTCOME_ALL =outcome, 
+                outcome_all_48 =outcome_48) %>%
+  evaluate_threshold( thr = FINAL_PAPER_ENSEMBLE_THRESHOLD)  %>%
+  as.data.frame() %>%
+  select(-contains("_48")) %>%
+  kable(caption = "Palliative")
+
+chartwatch_predictions_daily %>%
+  filter(clinician == 1) %>%
+  mutate(outcome = if_else(grepl("(death)|(icu)", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+  dplyr::mutate(.pred_1 = score,
+                OUTCOME_ALL =outcome, 
+                outcome_all_48 =outcome_48) %>%
+  evaluate_threshold( thr = FINAL_PAPER_ENSEMBLE_THRESHOLD)  %>%
+  as.data.frame() %>%
+  select(-contains("_48")) %>%
+  kable(caption = "Death & ICU")
+```
+
+Average clinician predictions by outcome
+
+```{r echo = FALSE}
+
+all_clinician_results <- list()
+i <- 1
+for (c in unique(clinician_predictions$clinicianid)) {
+  pred <- clinician_predictions %>%
+    dplyr::filter(clinicianid == c) %>%
+    select(-outcome) %>%
+    left_join(chartwatch_outcomes, by = c("ENCOUNTER_NUM", "date")) 
+  
+  death_res <- pred %>%
+    mutate(outcome = if_else(grepl("death", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+    dplyr::mutate(.pred_1 = ever,
+                  OUTCOME_ALL =outcome, 
+                  outcome_all_48 =outcome_48) %>%
+    evaluate_threshold(thr = 1) %>%
+    as_tibble() %>%
+    dplyr::select(-contains("48")) %>%
+    rename_all(function(x) {paste0(x, "_death")})
+  
+  icu_res <- pred %>%
+    mutate(outcome = if_else(grepl("icu", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+    dplyr::mutate(.pred_1 = ever,
+                  OUTCOME_ALL =outcome, 
+                  outcome_all_48 =outcome_48) %>%
+    evaluate_threshold(thr = 1) %>%
+    as_tibble() %>%
+    dplyr::select(-contains("48")) %>%
+    rename_all(function(x) {paste0(x, "_icu")})
+  
+  pal_res <- pred %>%
+    mutate(outcome = if_else(grepl("pal", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+    dplyr::mutate(.pred_1 = ever,
+                  OUTCOME_ALL =outcome, 
+                  outcome_all_48 =outcome_48) %>%
+    evaluate_threshold(thr = 1) %>%
+    as_tibble() %>%
+    dplyr::select(-contains("48")) %>%
+    rename_all(function(x) {paste0(x, "_pal")})
+  
+  death_icu_res <- pred %>%
+    mutate(outcome = if_else(grepl("death|icu", EVENT_TYPE_UPDATED, ignore.case = TRUE), 1, 0)) %>%
+    dplyr::mutate(.pred_1 = ever,
+                  OUTCOME_ALL =outcome, 
+                  outcome_all_48 =outcome_48) %>%
+    evaluate_threshold(thr = 1) %>%
+    as_tibble() %>%
+    dplyr::select(-contains("48")) %>%
+    rename_all(function(x) {paste0(x, "_death_icu")})
+
+  all_clinician_results[[i]] <-cbind(death_res, pal_res, icu_res, death_icu_res) %>%
+    dplyr::mutate(
+      clinician_id = c,
+      professional_group = pred$professional_group[[1]],
+      n_pred = nrow(pred),
+      n_patients = length(unique(pred$MRN)),
+      n_encounters = length(unique(pred$ENCOUNTER_NUM))
+    )
+  i <- i + 1
+}
+all_clinician_prediction_metrics <- do.call(rbind, all_clinician_results)
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(ppv_death, na.rm = TRUE),
+    median = median(ppv_death, na.rm = TRUE),
+    sd = sd(ppv_death, na.rm = TRUE),
+    iqr = IQR(ppv_death, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv_death, w = n_pred, na.rm = TRUE),
+    weighted_mean_patients = weighted.mean(ppv_death, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV (death)")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(sens_death, na.rm = TRUE),
+    median = median(sens_death, na.rm = TRUE),
+    sd = sd(sens_death, na.rm = TRUE),
+    iqr = IQR(sens_death, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens_death, w = n_pred, na.rm = TRUE),
+    weighted_mean_patients = weighted.mean(sens_death, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity (death)")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(ppv_icu, na.rm = TRUE),
+    median = median(ppv_icu, na.rm = TRUE),
+    sd = sd(ppv_icu, na.rm = TRUE),
+    iqr = IQR(ppv_icu, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv_icu, w = n_pred, na.rm = TRUE),
+    weighted_mean_patients = weighted.mean(ppv_icu, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV (icu)")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(sens_icu, na.rm = TRUE),
+    median = median(sens_icu, na.rm = TRUE),
+    sd = sd(sens_icu, na.rm = TRUE),
+    iqr = IQR(sens_icu, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens_icu, w = n_pred, na.rm = TRUE),
+    
+    weighted_mean_patients = weighted.mean(sens_icu, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity (icu)")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(ppv_pal, na.rm = TRUE),
+    median = median(ppv_pal, na.rm = TRUE),
+    sd = sd(ppv_pal, na.rm = TRUE),
+    iqr = IQR(ppv_pal, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv_pal, w = n_pred, na.rm = TRUE),
+    weighted_mean_patients = weighted.mean(ppv_pal, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV (palliative)")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(sens_pal, na.rm = TRUE),
+    median = median(sens_pal, na.rm = TRUE),
+    sd = sd(sens_pal, na.rm = TRUE),
+    iqr = IQR(sens_pal, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens_pal, w = n_pred, na.rm = TRUE),
+    weighted_mean_patients = weighted.mean(sens_pal, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity (palliative)")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(ppv_death_icu, na.rm = TRUE),
+    median = median(ppv_death_icu, na.rm = TRUE),
+    sd = sd(ppv_death_icu, na.rm = TRUE),
+    iqr = IQR(ppv_death_icu, na.rm = TRUE),
+    weighted_mean = weighted.mean(ppv_death_icu, w = n_pred, na.rm = TRUE),
+    weighted_mean_patients = weighted.mean(ppv_death_icu, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "PPV (death + ICU)")
+
+all_clinician_prediction_metrics %>%
+  summarize(
+    mean = mean(sens_death_icu, na.rm = TRUE),
+    median = median(sens_death_icu, na.rm = TRUE),
+    sd = sd(sens_death_icu, na.rm = TRUE),
+    iqr = IQR(sens_death_icu, na.rm = TRUE),
+    weighted_mean = weighted.mean(sens_death_icu, w = n_pred, na.rm = TRUE),
+    weighted_mean_patients = weighted.mean(sens_death_icu, w = n_patients, na.rm = TRUE)
+  ) %>%
+  kable(caption = "Sensitivity (death + ICU)")
+
+```

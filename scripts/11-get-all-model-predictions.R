@@ -28,7 +28,7 @@ for (prediction_date in list.files(predictions_folder)) {
   
   if (dir.exists(folder_name)) {
     ensemble_filename <- file.path(folder_name, 
-                                   "time_aware_mars_scores_2021_0308.csv")
+                                   "time_aware_mars_scores_2021_0401.csv")
     if (file.exists(ensemble_filename)) {
       
       predicted_outcomes <- clinician_predictions %>%

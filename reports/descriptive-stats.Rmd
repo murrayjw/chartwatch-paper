@@ -26,10 +26,10 @@ valid_data_method2 <- read.csv(FINAL_PAPER_VALID_ENCOUNTERS_DATA_FILENAME, strin
 valid_encounters_method2 <- read.csv(FINAL_PAPER_VALID_ENCOUNTERS_FILENAME, stringsAsFactors = FALSE)
 valid_vitals_method2 <- read.csv(FINAL_PAPER_VALID_VITALS_DATA_FILENAME, stringsAsFactors = FALSE)
 
-test_data_method2 <- read.csv(file.path(data_folder, "test_encounters_data_method2.csv"), stringsAsFactors = FALSE)
+test_data_method2 <- read.csv(file.path(data_folder, "test_encounters_data_method1.csv"), stringsAsFactors = FALSE)
 test_encounter_nums_method2 <- test_data_method2 %>% pull(ENCOUNTER_NUM)
 # Gives dataframe with 1 outcome/encounter
-test_encounters_method2 <- read.csv(file.path(data_folder, "test_encounters_with_outcomes_method2.csv"), stringsAsFactors = FALSE) 
+test_encounters_method2 <- read.csv(file.path(data_folder, "test_encounters_with_outcomes_method1.csv"), stringsAsFactors = FALSE) 
 # Gives dataframe with potentially multiple outcomes/encounter (e.g., encounter could transfer to ICU and then die)
 test_outcomes_method2 <- readr::read_csv(FINAL_PAPER_TEST_CLINICIAN_PREDICTIONS_FILENAME) %>%
   filter(ENCOUNTER_NUM %in% test_encounter_nums_method2)
@@ -38,6 +38,18 @@ test_vitals_method2 <- read.csv(file.path(data_folder, "test_vitals_data_method2
 
 ```
 
+# Time period of each cohort
+
+```{r echo = FALSE, message = FALSE}
+test_data_ts <- test_data_method2 %>%
+  dplyr::filter(ENCOUNTER_NUM %in% test_encounter_nums_method2)
+dplyr::tibble(
+  "Cohort" = c("Train", "Validation", "Test"),
+  "Start date" = c(min(train_data$ADMIT_TS), min(valid_data_method2$ADMIT_TS), min(test_data_ts$ADMIT_TS)),
+  "End date" = c(max(train_data$ADMIT_TS), max(valid_data_method2$ADMIT_TS), max(test_data_ts$ADMIT_TS))
+) %>%
+  knitr::kable()
+```
 
 
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
@@ -152,17 +164,10 @@ vitals_sum <- function(data, train_data) {
 # Demographics
 tableone::CreateTableOne(data = process_data(train_data),
                          vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
-  tableone::kableone(nonnormal = c("LOS"), 
-                     showAllLevels = TRUE, 
-                     caption = "Demographics")%>%
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+  print(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE)
 
-# Length of stay
-los_sum(process_data(train_data)) %>%
-  kable(caption = "Length of stay") %>%
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+
 
 # Vitals
 vitals_sum(train_vitals, train_vitals) %>%
@@ -174,11 +179,8 @@ vitals_sum(train_vitals, train_vitals) %>%
 tableone::CreateTableOne(data = train_encounters, 
                          vars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL", "gim_to_outcome"), 
                          factorVars = c("death", "post_gim_icu", "palliative_transfer", "OUTCOME_ALL")) %>%
-  tableone::kableone(nonnormal = c("gim_to_outcome"), 
-                     showAllLevels = TRUE,
-                     caption = "Outcomes") %>% 
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+  print(nonnormal = c("gim_to_outcome"), 
+                     showAllLevels = TRUE) 
 
 # Time to outcome
 tte_by_outcome <- train_encounters %>%
@@ -228,9 +230,9 @@ tte_by_outcome %>%
 
 
 
-# Validation and test data - method 2
+# Validation and test data - method 1
 
-Method 2: Keep all valid encounters. Filter test encounters so that they only include data whose start date was May 1, 2019
+Method 1: Keep all test encounters. 
 
 ## Validation data
 
@@ -239,17 +241,9 @@ Method 2: Keep all valid encounters. Filter test encounters so that they only in
 # Demographics
 tableone::CreateTableOne(data = process_data(valid_data_method2),
                          vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
-  tableone::kableone(nonnormal = c("LOS"), 
-                     showAllLevels = TRUE, 
-                     caption = "Demographics")%>%
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+  print(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE)
 
-# Length of stay
-los_sum(process_data(valid_data_method2)) %>%
-  kable(caption = "Length of stay") %>%
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
 
 # Vitals
 vitals_sum(valid_vitals_method2, train_vitals) %>%
@@ -315,17 +309,9 @@ tte_by_outcome %>%
 # Demographics
 tableone::CreateTableOne(data = process_data(test_data_method2),
                          vars = c("age", "GENDER_CD", "DIAGNOSIS", "DISPOSITION", "LOS")) %>%
-  tableone::kableone(nonnormal = c("LOS"), 
-                     showAllLevels = TRUE, 
-                     caption = "Demographics")%>%
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+  print(nonnormal = c("LOS"), 
+                     showAllLevels = TRUE)
 
-# Length of stay
-los_sum(process_data(test_data_method2)) %>%
-  kable(caption = "Length of stay") %>%
-  kableExtra::collapse_rows() %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
 
 # Vitals
 vitals_sum(test_vitals_method2, train_vitals) %>%

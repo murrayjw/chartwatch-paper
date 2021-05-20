@@ -23,7 +23,11 @@ load(MARS_RECIPE_FILENAME)
 # Get updated encounter nums ----------------------------------------------
 
 train_data <- final_mars_recipe$template
+
 train_encounter_nums <- unique(train_data$ENCOUNTER_NUM)
+train_encounters <- read.csv(file.path(MODEL_TRAINING_DATA_FOLDER, "encounters.csv"), 
+                             stringsAsFactors = FALSE) %>%
+  dplyr::filter(ENCOUNTER_NUM %in% train_encounter_nums)
 
 valid_encounters <- read.csv(PAPER_VALID_ENCOUNTERS_FILENAME, 
                              stringsAsFactors = FALSE)
@@ -45,14 +49,14 @@ split_df <- function(df, train_encounter_nums, valid_encounter_nums) {
   return(updated_df)
 }
 
-encounters <- rbind(train_encounters, valid_encounters)
+encounters <- rbind(train_encounters, valid_encounters %>% select(-X))
 
 encounters_data <- rbind(
   read.csv(
     "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/train_encounters_data.csv",
     stringsAsFactors = FALSE),
   read.csv(
-    "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_encounters_data_method2.csv",
+    "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_encounters_data_method1.csv",
     stringsAsFactors = FALSE
   )
 )
@@ -63,7 +67,7 @@ vitals_data <- rbind(
     stringsAsFactors = FALSE
   ),
   read.csv(
-    "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_vitals_data_method2.csv",
+    "/mnt/research/LKS-CHART/Projects/gim_ews_project/data/paper-data/valid_vitals_data_method1.csv",
     stringsAsFactors = FALSE
   )
 )

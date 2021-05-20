@@ -156,7 +156,6 @@ for (folder in list.files(prediction_frames_folder, full.names = TRUE)) {
       dplyr::left_join(labs, by = c("ENCOUNTER_NUM", "timestamp")) %>%
       dplyr::left_join(vitals, by = c("ENCOUNTER_NUM", "timestamp"))
     
-    # TODO: Does a different descriptive stats file need to be used?
     cleaned_data <- chartwatch::prepare_numeric_timeseries(numeric_data, 
                                                            desc_name = DESCRIPTIVE_STATS_FILE, 
                                                            trans_name = TRANSFORMATIONS_FILE)

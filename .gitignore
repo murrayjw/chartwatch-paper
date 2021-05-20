@@ -5,5 +5,7 @@
 .Rproj.user/shared/notebooks/paths
 .Rprofile
 clinician_model_performance.html
+*.html
+clinician_model_performance_files/*
 script/*.html
 reports/*.html
